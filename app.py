@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from core.pipeline import analyze_response
 
 app = Flask(__name__)
 CORS(app)  # Needed for plugin access
@@ -8,20 +9,6 @@ CORS(app)  # Needed for plugin access
 def check():
     data = request.get_json()
     response = data.get("response", "")
-    
-    # Placeholder: dummy output
-    result = {
-        "claims": [
-            {
-                "text": "The Eiffel Tower is 900 meters tall",
-                "supported": False,
-                "score": 0.12
-            },
-            {
-                "text": "The Eiffel Tower is located in Berlin",
-                "supported": False,
-                "score": 0.18
-            }
-        ]
-    }
+    result = analyze_response(response)
+
     return jsonify(result)
