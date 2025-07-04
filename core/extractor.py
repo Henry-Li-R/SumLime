@@ -4,5 +4,4 @@ def extract_claims(text):
     Filters out short or empty fragments.
     """
     raw_sentences = text.split(".")
-    print(raw_sentences)
     return [sent.strip() for sent in raw_sentences if len(sent.strip()) > 10]

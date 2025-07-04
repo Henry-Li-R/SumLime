@@ -24,7 +24,7 @@ To build a working prototype of a hallucination detection API that can be integr
     {
       "text": "The Eiffel Tower is 900 meters tall",
       "supported": false,
-      "score": 0.12
+      "score": 0
     },
     {
       "text": "The Eiffel Tower is located in Berlin",
@@ -47,7 +47,7 @@ Request body:
 
 - Python + Flask
 - `sentence-transformers`
-- (Planned) SerpAPI or DuckDuckGo search for live snippets
+- (Planned) DuckDuckGo search for live snippets
 - (Planned) Claim extractor based on NER or factuality model
 
 ## 📦 Setup
