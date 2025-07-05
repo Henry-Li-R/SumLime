@@ -25,14 +25,10 @@ def search_snippets(claim):
     snippets = []
 
     results = soup.find_all("a", class_="result__snippet")
-    print(results)
-    print("\n\n")
     if not results:
         raise RuntimeError("No result snippets found in DuckDuckGo HTML response")
     for result in results: # Store up to 5 snippets
         text = result.get_text(strip=True)
-        print("result " + text + "\n\n")
-
         if text:
             snippets.append(text)
         if len(snippets) >= 5:
