@@ -9,7 +9,6 @@ def verify():
     claim = data.get("claim", "")
     if not claim:
         return jsonify({"error": "Missing 'claim' in request"}), 400
-    print("hello world")
     result = verify_claim(claim)
     return jsonify(result)
 

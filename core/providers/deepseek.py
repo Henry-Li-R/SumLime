@@ -1,18 +1,23 @@
-from base import LLMProvider
+from core.providers.base import LLMProvider
+from openai import OpenAI
 import os
-import requests
 
 class DeepSeekProvider(LLMProvider):
-    API_URL = "https://api.deepseek.com/chat/completions"  # adjust if different
-    API_KEY = os.environ.get("DEEPSEEK_API_KEY")
+
+    def __init__(self):
+        api_key = os.environ.get("DEEPSEEK_API_KEY")
+        if not api_key:
+            raise ValueError("DEEPSEEK_API_KEY not set in environment variables")
+        self.client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
 
     def query(self, prompt: str) -> str:
-        """Query DeepSeek model with the claim and return its verdict and rationale."""
-        headers = {"Authorization": f"Bearer {DeepSeekProvider.API_KEY}", "Content-Type": "application/json"}
-        data = {
-            "model": "deepseek-chat",  # replace if needed
-            "messages": [{"role": "user", "content": prompt}]
-        }
-        response = requests.post(DeepSeekProvider.API_URL, json=data, headers=headers, timeout=10)
-        response.raise_for_status()
-        return response.json()["choices"][0]["message"]["content"]
+        messages = [
+            {"role": "system", "content": "You are a fact-checking assistant. Reply with 'Supported', 'Not Supported', or 'Uncertain', followed by a short explanation."},
+            {"role": "user", "content": prompt}
+        ]
+        response = self.client.chat.completions.create(
+            model="deepseek-chat",
+            messages=messages,
+            stream=False
+        )
+        return response.choices[0].message.content
