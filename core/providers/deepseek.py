@@ -12,7 +12,7 @@ class DeepSeekProvider(LLMProvider):
 
     def query(self, prompt: str) -> str:
         messages = [
-            {"role": "system", "content": "You are a fact-checking assistant. Reply with 'Supported', 'Not Supported', or 'Uncertain', followed by a short explanation."},
+            {"role": "system", "content": self.SYSTEM_MESSAGE},
             {"role": "user", "content": prompt}
         ]
         response = self.client.chat.completions.create(
