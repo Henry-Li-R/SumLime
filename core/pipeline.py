@@ -1,36 +1,35 @@
 from core.providers.deepseek import DeepSeekProvider
-from core.providers.chatgpt import ChatGPTProvider
-from core.providers.claude import ClaudeProvider
+#from core.providers.chatgpt import ChatGPTProvider
+#from core.providers.claude import ClaudeProvider
 from core.providers.gemini import GeminiProvider
 
-def verify_claim(claim: str) -> dict:
-    """
-    Verify a factual claim using multiple LLMs.
+MODEL_PROVIDERS = {
+    "deepseek": DeepSeekProvider(),
+    #"chatgpt": ChatGPTProvider(),
+    #"claude": ClaudeProvider(),
+    "gemini": GeminiProvider(),
+}
 
-    Args:
-        claim (str): A sentence or assertion to verify.
+def summarize(prompt: str, models: list[str] = list(MODEL_PROVIDERS.keys()), summary_model: str = "gemini") -> dict:
+    results = {}
+    for model in models:
+        results[model] = MODEL_PROVIDERS[model].query(prompt)
 
-    Returns:
-        dict: Structured output with verdict, summary, and model-wise details.
-    """  
-    
-    
-    ds = DeepSeekProvider()
-    ds_results = ds.query(claim)
+    LLM_ANONYMOUS = True
+    summary_input = "\n\n".join(
+        [f"{('LLM ' + str(i)) if LLM_ANONYMOUS else model.upper()}:\n{output}" for i, (model, output) in enumerate(results.items(), start=1)]
+    )
 
-    gmn = GeminiProvider()
-    gmn_results = gmn.query(claim)
-    gmn_summarize = gmn.query(claim, system_message=gmn.SUMMARIZE_MESSAGE)
-    '''
-    cgpt = ChatGPTProvider()
-    cgpt_results = cgpt.query(claim)
+    summary_prompt = f"""Compare and summarize the content of the following responses to the same prompt. Focus on similarities, differences in reasoning, and any ambiguities or omissions. Do not evaluate which model is better.
 
-    cld = ClaudeProvider()
-    cld_results = cld.query(claim)
-    '''
-    
-    return { 
-        "verdict": "uncertain", 
-        "summary": "Verification not yet implemented.", 
-        "details": [ds_results, gmn_results]
-        }
+Prompt:\n\n
+{prompt}\n\n
+LLM responses:\n\n
+{summary_input}
+"""
+    summary = MODEL_PROVIDERS[summary_model].query(summary_prompt)
+
+    return {
+        "results": results,
+        "summary": summary,
+    }

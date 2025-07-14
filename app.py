@@ -1,15 +1,15 @@
 from flask import Flask, request, jsonify
-from core.pipeline import verify_claim
+from core.pipeline import summarize
 
 app = Flask(__name__)
 
-@app.route("/verify", methods=["POST"])
-def verify():
+@app.route("/summarize", methods=["POST"])
+def summarize_prompts():
     data = request.get_json()
-    claim = data.get("claim", "")
-    if not claim:
-        return jsonify({"error": "Missing 'claim' in request"}), 400
-    result = verify_claim(claim)
+    prompt = data.get("prompt", "")
+    if not prompt:
+        return jsonify({"error": "Missing 'prompt' in request"}), 400
+    result = summarize(prompt)
     return jsonify(result)
 
 if __name__ == "__main__":
