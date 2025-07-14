@@ -10,9 +10,9 @@ class ChatGPTProvider(LLMProvider):
         
         self.client = OpenAI(api_key=api_key)
 
-    def query(self, prompt: str) -> str:
+    def query(self, prompt: str, system_message="") -> str:
         messages = [
-            {"role": "system", "content": self.SYSTEM_MESSAGE},
+            {"role": "system", "content": system_message},
             {"role": "user", "content": prompt},
         ]
         response = self.client.responses.create(

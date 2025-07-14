@@ -10,8 +10,8 @@ class GeminiProvider(LLMProvider):
             raise ValueError("GEMINI_API_KEY not set in environment variables")
         self.client = genai.Client(api_key=api_key)
 
-    def query(self, prompt: str) -> str:
-        messages = [self.SYSTEM_MESSAGE, prompt]
+    def query(self, prompt: str, system_message="") -> str:
+        messages = [system_message, prompt]
         response = self.client.models.generate_content(
             model="gemini-2.0-flash-lite",
             contents=messages,

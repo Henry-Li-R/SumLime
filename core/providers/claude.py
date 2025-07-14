@@ -10,7 +10,7 @@ class ClaudeProvider(LLMProvider):
         
         self.client = Anthropic(api_key=api_key)
 
-    def query(self, prompt: str) -> str:
+    def query(self, prompt: str, system_message="") -> str:
         message = [{
             "role": "user",
             "content": [{"type": "text", "text": prompt}],
@@ -20,7 +20,7 @@ class ClaudeProvider(LLMProvider):
             model='claude-3-haiku-20240307',
             max_tokens=1000,
             temperature=1,
-            system=self.SYSTEM_MESSAGE,
+            system=system_message,
             messages=message
         )
         return response.content
