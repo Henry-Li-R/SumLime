@@ -9,7 +9,7 @@ def summarize_prompts():
     prompt = data.get("prompt", "")
     if not prompt:
         return jsonify({"error": "Missing 'prompt' in request"}), 400
-    result = summarize(prompt)
+    result = summarize(prompt, ["deepseek", "gemini"])
     return jsonify(result)
 
 if __name__ == "__main__":
