@@ -1,7 +1,9 @@
+from flask_cors import CORS
 from flask import Flask, request, jsonify
 from core.pipeline import summarize
 
 app = Flask(__name__)
+CORS(app, origins=["http://localhost:5173"], methods=["GET", "POST"])
 
 @app.route("/summarize", methods=["POST"])
 def summarize_prompts():
@@ -13,4 +15,4 @@ def summarize_prompts():
     return jsonify(result)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5050)
