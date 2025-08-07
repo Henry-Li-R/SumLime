@@ -73,6 +73,7 @@ Response:
 
 - [ ] Frontend: multi-select model UI, input panel, output view
 - [ ] Cross-LLM summary + contradiction flagging
+- [ ] Chat history database
 - [ ] Rate limit or token usage tracking
 - [ ] Web-based fact-checking (optional module)
 - [ ] Markdown + LaTeX formatting toggle
