@@ -10,7 +10,7 @@ function App() {
   const [page, setPage] = useState(1);
   const [prompt, setPrompt] = useState("");
   const [responses, setResponses] = useState<LLMResponse | null>(null);
-
+  const [chatSession, setChatSession] = useState(null);
   const modelKeys = responses ? Object.keys(responses.results) : [];
   const totalPages = responses ? modelKeys.length + 1 : 1;
 
@@ -28,6 +28,7 @@ function App() {
       body: JSON.stringify({
         prompt,
         models: ["gemini", "deepseek"],
+        chatSession: chatSession,
         summary_model: "gemini",
         llm_anonymous: true,
       }),

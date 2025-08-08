@@ -10,19 +10,25 @@ MODEL_PROVIDERS = {
     "gemini": GeminiProvider(),
 }
 
+# [ ] handling None chat_session
+# [ ] lots of testing or trial/error
+# [ ] update gemini (e.g. code, imports)
+
+
 def summarize(prompt: str,
               models: list[str],
+              chat_session: int | None = None,
               summary_model: str = "gemini",
               llm_anonymous: bool = True) -> dict:
     results = {}
     for model in models:
-        results[model] = MODEL_PROVIDERS[model].query(prompt)
+        results[model] = MODEL_PROVIDERS[model].query(prompt, chat_session)
 
     summary_input = "\n\n".join(
         [f"{('LLM ' + str(i)) if llm_anonymous else model.upper()}:\n{output}" for i, (model, output) in enumerate(results.items(), start=1)]
     )
 
-    summary_prompt = f"""Compare and summarize the content of the following responses to the same prompt. Focus on similarities, differences in reasoning, and any ambiguities or omissions. Do not evaluate which model is better.
+    summary_prompt = f"""Compare and summarize the content of the following responses to the same prompt. Focus on similarities, differences in reasoning, and any ambiguities or omissions. Do not evaluate which model is better. The ultimate goal is obtaining accurate multifaceted information
 
 Prompt:\n\n
 {prompt}\n\n
