@@ -3,6 +3,10 @@ from core.providers.deepseek import DeepSeekProvider
 #from core.providers.claude import ClaudeProvider
 from core.providers.gemini import GeminiProvider
 
+from db import db
+from core.providers.models import ChatSession, ChatMessage
+from datetime import datetime, timezone
+
 MODEL_PROVIDERS = {
     "deepseek": DeepSeekProvider(),
     #"chatgpt": ChatGPTProvider(),
@@ -10,16 +14,23 @@ MODEL_PROVIDERS = {
     "gemini": GeminiProvider(),
 }
 
-# [ ] handling None chat_session
-# [ ] lots of testing or trial/error
-# [ ] update gemini (e.g. code, imports)
-
-
 def summarize(prompt: str,
               models: list[str],
               chat_session: int | None = None,
               summary_model: str = "gemini",
               llm_anonymous: bool = True) -> dict:
+    
+    if chat_session is None: # Create new chat if needed
+        new_session = ChatSession(title="Chat Title")
+        db.session.add(new_session)
+        db.session.commit()
+        chat_session = new_session.id
+    
+    # Update last_used time for current chat_session
+    session = ChatSession.query.get_or_404(chat_session)
+    session.last_used = datetime.now(timezone.utc)
+    db.session.commit()
+    
     results = {}
     for model in models:
         results[model] = MODEL_PROVIDERS[model].query(prompt, chat_session)
@@ -35,9 +46,10 @@ Prompt:\n\n
 LLM responses:\n\n
 {summary_input}
 """
-    summary = MODEL_PROVIDERS[summary_model].query(summary_prompt)
+    summary = MODEL_PROVIDERS[summary_model].query(summary_prompt, chat_session, is_summarizing=True)
+    results["summary"] = summary
 
     return {
         "results": results,
-        "summary": summary,
+        "session_id": chat_session,
     }
