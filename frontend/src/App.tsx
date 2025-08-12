@@ -11,6 +11,7 @@ function App() {
   const [chatSession, setChatSession] = useState<number | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
     fetch(`${API_BASE}/sessions`)
@@ -38,41 +39,51 @@ function App() {
 
   const fetchSummary = async () => {
     if (!prompt.trim()) return;
+    if (isSending) return;
+    setIsSending(true);
 
-    fetch(`${API_BASE}/summarize`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        prompt,
-        models: ["gemini", "deepseek"],
-        chatSession: chatSession,
-        summary_model: "gemini",
-        llm_anonymous: true,
-      }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        // [ ] find more efficient solution than fetching all
-        // chat messages every time
-        loadSession(data.session_id);
-
-        // Also refresh the sessions list so the left panel is up-to-date
-        fetch(`${API_BASE}/sessions`)
-          .then((r) => r.json())
-          .then(setSessions)
-          .catch(() => {});
-
-      })
-      .catch((err) => {
-        console.error(err);
+    try {
+      const res = await fetch(`${API_BASE}/summarize`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt,
+          models: ["gemini", "deepseek"],
+          chatSession: chatSession,
+          summary_model: "gemini",
+          llm_anonymous: true,
+        }),
       });
+
+      const data = await res.json();
+
+      // [ ] find more efficient solution than fetching all
+      // chat messages every time
+      await loadSession(data.session_id);
+
+      // Also refresh the sessions list so the left panel is up-to-date
+      try {
+        const sessRes = await fetch(`${API_BASE}/sessions`);
+        if (sessRes.ok) {
+          const sess = await sessRes.json();
+          setSessions(sess);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSending(false);
+      setPrompt("");
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex px-4 py-6">
-      <aside className="w-1/2 bg-white border border-gray-200 rounded-md overflow-y-auto p-3">
+      <aside className="flex-none w-72 md:w-80 lg:w-96 bg-white border border-gray-200 rounded-md p-3 overflow-y-auto h-screen">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-gray-700">Chats</h2>
           <button
@@ -113,47 +124,51 @@ function App() {
           </ul>
         )}
       </aside>
-      <main className="flex-1 flex flex-col justify-between ml-4">
+      <main className="flex-1 flex flex-col justify-between ml-4 overflow-y-auto h-screen">
         {/* Output panel */}
-        <div className="max-w-4xl mx-auto flex-grow">
-          <div className="bg-white p-6 rounded-lg shadow mb-4">
-            <>
-              {/* Chat history for the selected session */}
-              {messages.length > 0 ? (
-                <div className="mb-6 space-y-3">
-                  <h2 className="text-lg font-semibold">Chat history</h2>
-                  {messages.map((m, idx) => (
-                    <div key={idx} className="border rounded p-3">
-                      <div className="text-xs text-gray-500 mb-1">
-                        {m.role.toUpperCase()} {m.provider ? `• ${m.provider}` : ""} • {new Date(m.timestamp).toLocaleString()}
-                      </div>
-                      <div className="whitespace-pre-wrap">
-                        <ReactMarkdown>{m.content}</ReactMarkdown>
-                      </div>
+        <div className="bg-white p-6 rounded-lg shadow mb-4 flex-grow overflow-y-auto">
+          {isSending && (
+            <div className="mb-3 text-sm text-gray-500">
+              Sending…
+            </div>
+          )}
+          <>
+            {/* Chat history for the selected session */}
+            {messages.length > 0 ? (
+              <div className="mb-6 space-y-3 w-full max-w-none">
+                <h2 className="text-lg font-semibold">Chat history</h2>
+                {messages.map((m, idx) => (
+                  <div key={idx} className="border rounded p-3">
+                    <div className="text-xs text-gray-500 mb-1">
+                      {m.role.toUpperCase()} {m.provider ? `• ${m.provider}` : ""} • {new Date(m.timestamp).toLocaleString()}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                messages.length === 0 && <p className="text-gray-500">Enter a prompt or pick a chat to get started.</p>
-              )}
-            </>
-          </div>
+                    <div className="whitespace-pre-wrap">
+                      <ReactMarkdown>{m.content}</ReactMarkdown>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              messages.length === 0 && <p className="text-gray-500">Enter a prompt or pick a chat to get started.</p>
+            )}
+          </>
         </div>
 
         {/* Prompt Input Section */}
-        <div className="max-w-4xl mx-auto mt-6">
+        <div className="mt-6">
           <input
             type="text"
-            placeholder="Enter your prompt..."
+            placeholder={isSending ? "Sending…" : "Enter your prompt..."}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
+              if (e.key === "Enter" && !isSending) {
                 fetchSummary();
                 console.log("Prompt sent successfully");
               }
             }}
-            className="w-full border border-gray-300 rounded px-4 py-2 shadow"
+            disabled={isSending}
+            className="w-full border border-gray-300 rounded px-4 py-2 shadow disabled:opacity-50"
           />
         </div>
       </main>
