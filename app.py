@@ -1,14 +1,12 @@
-from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import selectinload
 from flask_cors import CORS
 from flask import Flask, request, jsonify
-from datetime import datetime, timezone
-
 from dotenv import load_dotenv
 load_dotenv()
 
 from core.pipeline import summarize
 from db import db
-from core.providers.models import ChatSession, ChatMessage
+from core.providers.models import ChatSession, ChatTurn
 
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:5173"], methods=["GET", "POST"])
@@ -49,22 +47,39 @@ def list_sessions():
     ])
 
 @app.route("/sessions/<int:session_id>", methods=["GET"])
-def get_session_messages(session_id):
-    msgs = (
-        ChatMessage.query
-        .filter_by(session_id=session_id)
-        .order_by(ChatMessage.timestamp.asc())
-        .all()
-    )
-    return jsonify([
-        {
-            "role": m.role,
-            "provider": m.provider,
-            "content": m.content,
-            "timestamp": m.timestamp.isoformat() + "Z"
+def get_session_messages(session_id: int):
+    
+    turns = (ChatTurn.query
+             .filter_by(session_id=session_id)
+             .order_by(ChatTurn.created_at.asc())           # chronological
+             .options(selectinload(ChatTurn.outputs))        # avoid N+1
+             .all())
+
+    def pack_turn(t: ChatTurn):
+        outs = t.outputs or []
+
+        summarizer = next((o for o in outs if o.provider == "summarizer"), None)
+        base = [o for o in outs if o.provider not in ("user", "summarizer")]
+
+        responses = []
+        if summarizer:
+            responses.append({
+                "provider": summarizer.provider,
+                "content": summarizer.content
+            })
+        responses.extend({
+            "provider": o.provider,
+            "content": o.content
+        } for o in base)
+
+        return {
+            "turn_id": t.id,
+            "created_at": t.created_at.isoformat(),
+            "prompt": t.prompt,
+            "responses": responses,
         }
-        for m in msgs
-    ])
+
+    return jsonify([pack_turn(t) for t in turns])
 
 if __name__ == "__main__":
     app.run(debug=True, port=5050)

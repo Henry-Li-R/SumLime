@@ -2,7 +2,13 @@ import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
 type Session = { id: number; title: string; last_used: string };
-type Message = { role: string; provider: string | null; content: string; timestamp: string };
+type LLMResponse = {provider: string; content: string};
+type ChatTurn = {
+  turn_id: number;
+  created_at: string;
+  prompt: string;
+  responses: LLMResponse[];
+}
 
 const API_BASE = "http://localhost:5050";
 
@@ -10,7 +16,7 @@ function App() {
   const [prompt, setPrompt] = useState("");
   const [chatSession, setChatSession] = useState<number | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [chatTurns, setChatTurns] = useState<ChatTurn[]>([]);
   const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
@@ -25,15 +31,14 @@ function App() {
     try {
       const res = await fetch(`${API_BASE}/sessions/${id}`);
       if (res.ok) {
-        const data: Message[] = await res.json();
-        setMessages(data);
+        const data: ChatTurn[] = await res.json();
+        setChatTurns(data);
       } else {
-        setMessages([]);
+        setChatTurns([]);
       }
-      // Clear compare results when switching sessions
       setPrompt("");
     } catch {
-      setMessages([]);
+      setChatTurns([]);
     }
   };
 
@@ -41,6 +46,7 @@ function App() {
     if (!prompt.trim()) return;
     if (isSending) return;
     setIsSending(true);
+    console.log("Prompt sent successfully");
 
     try {
       const res = await fetch(`${API_BASE}/summarize`, {
@@ -58,10 +64,31 @@ function App() {
       });
 
       const data = await res.json();
+      // Format `/summarize` response into a ChatTurn and append (preserve model order)
+      const selectedModels = ["gemini", "deepseek"]; // [ ]: source from UI state if selectable
+      const results = data?.results ?? {};
 
-      // [ ] find more efficient solution than fetching all
-      // chat messages every time
-      await loadSession(data.session_id);
+      const baseResponses = selectedModels
+        .map((p) => {
+          const content = results[p];
+          if (content == null) return null;
+          return { provider: p, content } as LLMResponse;
+        })
+        .filter(Boolean) as LLMResponse[];
+
+      const summaryContent = results.summarizer ?? results.summary ?? null;
+      const responses: LLMResponse[] =
+        summaryContent != null
+          ? [{ provider: "summarizer", content: summaryContent }, ...baseResponses]
+          : baseResponses;
+      const newTurn: ChatTurn = {
+        turn_id: data.turn_id,
+        created_at: data.created_at,
+        prompt: data.prompt,
+        responses,
+      };
+
+      setChatTurns((prev) => [...prev, newTurn]);
 
       // Also refresh the sessions list so the left panel is up-to-date
       try {
@@ -90,7 +117,7 @@ function App() {
             className="text-xs px-2 py-1 border rounded hover:bg-gray-50"
             onClick={() => {
               setChatSession(null);
-              setMessages([]);
+              setChatTurns([]);
               setPrompt("");
             }}
             title="Start a new chat"
@@ -134,22 +161,37 @@ function App() {
           )}
           <>
             {/* Chat history for the selected session */}
-            {messages.length > 0 ? (
+            {chatTurns.length > 0 ? (
               <div className="mb-6 space-y-3 w-full max-w-none">
                 <h2 className="text-lg font-semibold">Chat history</h2>
-                {messages.map((m, idx) => (
-                  <div key={idx} className="border rounded p-3">
-                    <div className="text-xs text-gray-500 mb-1">
-                      {m.role.toUpperCase()} {m.provider ? `• ${m.provider}` : ""} • {new Date(m.timestamp).toLocaleString()}
+                {chatTurns.map((t, idx) => (
+                  <div key={t.turn_id ?? idx} className="border rounded p-3">
+                    <div className="text-xs text-gray-500 mb-2">
+                      Turn {idx + 1} • {new Date(t.created_at + "Z").toLocaleString()}
                     </div>
-                    <div className="whitespace-pre-wrap">
-                      <ReactMarkdown>{m.content}</ReactMarkdown>
+
+                    <div className="mb-2">
+                      <div className="text-xs font-semibold text-gray-600">Prompt</div>
+                      <div className="whitespace-pre-wrap">{t.prompt}</div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {t.responses.map((r, i) => (
+                        <div key={i} className="border rounded p-2">
+                          <div className="text-xs text-gray-500 mb-1">
+                            {r.provider.toUpperCase()}
+                          </div>
+                          <div className="whitespace-pre-wrap">
+                            <ReactMarkdown>{r.content}</ReactMarkdown>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              messages.length === 0 && <p className="text-gray-500">Enter a prompt or pick a chat to get started.</p>
+              chatTurns.length === 0 && <p className="text-gray-500">Enter a prompt or pick a chat to get started.</p>
             )}
           </>
         </div>
@@ -164,7 +206,6 @@ function App() {
             onKeyDown={(e) => {
               if (e.key === "Enter" && !isSending) {
                 fetchSummary();
-                console.log("Prompt sent successfully");
               }
             }}
             disabled={isSending}
