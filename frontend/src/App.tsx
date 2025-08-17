@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
 
 type Session = { id: number; title: string; last_used: string };
 type LLMResponse = {provider: string; content: string};
@@ -182,7 +185,7 @@ function App() {
                             {r.provider.toUpperCase()}
                           </div>
                           <div className="whitespace-pre-wrap">
-                            <ReactMarkdown>{r.content}</ReactMarkdown>
+                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{r.content}</ReactMarkdown>
                           </div>
                         </div>
                       ))}
