@@ -3,9 +3,11 @@ import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
+import rehypeMathCopy from "../utils/rehypeMathCopy.ts"
+import { MathInline, MathBlock } from "../components/MathWrappers.tsx"
 
 type Session = { id: number; title: string; last_used: string };
-type LLMResponse = {provider: string; content: string};
+type LLMResponse = { provider: string; content: string };
 type ChatTurn = {
   turn_id: number;
   created_at: string;
@@ -26,7 +28,7 @@ function App() {
     fetch(`${API_BASE}/sessions`)
       .then((r) => r.json())
       .then(setSessions)
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const loadSession = async (id: number) => {
@@ -137,13 +139,12 @@ function App() {
               <li key={s.id}>
                 <button
                   onClick={() => loadSession(s.id)}
-                  className={`w-full text-left px-3 py-2 rounded border transition ${
-                    chatSession === s.id
+                  className={`w-full text-left px-3 py-2 rounded border transition ${chatSession === s.id
                       ? "bg-gray-100 border-gray-300"
                       : "bg-white border-gray-200 hover:bg-gray-50"
-                  }`}
+                    }`}
                   title={new Date(s.last_used).toLocaleString()}
-                > 
+                >
                   <div className="text-sm font-medium truncate">{s.title}</div>
                   <div className="text-[11px] text-gray-500">
                     {new Date(s.last_used).toLocaleString()}
@@ -185,7 +186,18 @@ function App() {
                             {r.provider.toUpperCase()}
                           </div>
                           <div className="whitespace-pre-wrap">
-                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{r.content}</ReactMarkdown>
+                            <ReactMarkdown
+                              remarkPlugins={[remarkMath]}
+                              rehypePlugins={[rehypeKatex, rehypeMathCopy]}
+                              components={
+                                {
+                                  "math-inline": MathInline,
+                                  "math-block": MathBlock,
+                                } as unknown as import("react-markdown").Components
+                              }
+                            >
+                              {r.content}
+                            </ReactMarkdown>
                           </div>
                         </div>
                       ))}

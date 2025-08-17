@@ -1,4 +1,3 @@
-from sqlalchemy.types import JSON
 from datetime import datetime, timezone
 from db import db
 
