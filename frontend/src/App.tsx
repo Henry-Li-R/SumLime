@@ -23,6 +23,7 @@ function App() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [chatTurns, setChatTurns] = useState<ChatTurn[]>([]);
   const [isSending, setIsSending] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.matchMedia("(min-width: 768px)").matches);
 
   useEffect(() => {
     fetch(`${API_BASE}/sessions`)
@@ -50,6 +51,8 @@ function App() {
   const fetchSummary = async () => {
     if (!prompt.trim()) return;
     if (isSending) return;
+
+    setPrompt("");
     setIsSending(true);
     console.log("Prompt sent successfully");
 
@@ -109,13 +112,29 @@ function App() {
       console.error(err);
     } finally {
       setIsSending(false);
-      setPrompt("");
     }
   };
 
+  
+
   return (
-    <div className="min-h-screen bg-gray-50 flex px-4 py-6">
-      <aside className="flex-none w-72 md:w-80 lg:w-96 bg-white border border-gray-200 rounded-md p-3 overflow-y-auto h-screen">
+    <div className={`min-h-screen w-screen bg-gray-50 md:flex gap-4 md:gap-6 lg:gap-8 px-4 md:px-6 lg:px-8 py-6 pt-12`}>
+      <header className="fixed top-0 inset-x-0 z-50 bg-white/90 backdrop-blur border-b border-gray-200">
+        <div className="h-12 flex items-center justify-between px-4 md:px-6 lg:px-8">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 rounded-md text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+            aria-label="Toggle sidebar"
+          >
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <path d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <h1 className="text-sm font-semibold text-gray-700">Menu</h1>
+          <div className="w-6" />
+        </div>
+      </header>
+      <aside className={`fixed top-12 left-0 bottom-0 z-40 bg-white w-64 md:w-80 lg:w-96 transition-transform duration-300 border border-gray-200 rounded-md px-4 md:px-5 py-3 overflow-y-auto ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-gray-700">Chats</h2>
           <button
@@ -134,14 +153,14 @@ function App() {
         {sessions.length === 0 ? (
           <div className="text-xs text-gray-500">No chats yet.</div>
         ) : (
-          <ul className="space-y-2">
+          <ul className="space-y-2 list-none pl-0">
             {sessions.map((s) => (
               <li key={s.id}>
                 <button
                   onClick={() => loadSession(s.id)}
                   className={`w-full text-left px-3 py-2 rounded border transition ${chatSession === s.id
-                      ? "bg-gray-100 border-gray-300"
-                      : "bg-white border-gray-200 hover:bg-gray-50"
+                    ? "bg-gray-100 border-gray-300"
+                    : "bg-white border-gray-200 hover:bg-gray-50"
                     }`}
                   title={new Date(s.last_used).toLocaleString()}
                 >
@@ -155,64 +174,58 @@ function App() {
           </ul>
         )}
       </aside>
-      <main className="flex-1 flex flex-col justify-between ml-4 overflow-y-auto h-screen">
+      <main className="flex-1 flex flex-col overflow-y-auto">
         {/* Output panel */}
-        <div className="bg-white p-6 rounded-lg shadow mb-4 flex-grow overflow-y-auto">
-          {isSending && (
-            <div className="mb-3 text-sm text-gray-500">
-              Sending…
-            </div>
-          )}
-          <>
-            {/* Chat history for the selected session */}
-            {chatTurns.length > 0 ? (
-              <div className="mb-6 space-y-3 w-full max-w-none">
-                <h2 className="text-lg font-semibold">Chat history</h2>
-                {chatTurns.map((t, idx) => (
-                  <div key={t.turn_id ?? idx} className="border rounded p-3">
-                    <div className="text-xs text-gray-500 mb-2">
-                      Turn {idx + 1} • {new Date(t.created_at + "Z").toLocaleString()}
-                    </div>
-
-                    <div className="mb-2">
-                      <div className="text-xs font-semibold text-gray-600">Prompt</div>
-                      <div className="whitespace-pre-wrap">{t.prompt}</div>
-                    </div>
-
-                    <div className="space-y-3">
-                      {t.responses.map((r, i) => (
-                        <div key={i} className="border rounded p-2">
-                          <div className="text-xs text-gray-500 mb-1">
-                            {r.provider.toUpperCase()}
-                          </div>
-                          <div className="whitespace-pre-wrap">
-                            <ReactMarkdown
-                              remarkPlugins={[remarkMath]}
-                              rehypePlugins={[rehypeKatex, rehypeMathCopy]}
-                              components={
-                                {
-                                  "math-inline": MathInline,
-                                  "math-block": MathBlock,
-                                } as unknown as import("react-markdown").Components
-                              }
-                            >
-                              {r.content}
-                            </ReactMarkdown>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+        <div className="bg-white p-6 rounded-lg shadow mb-4 flex-1 min-h-0 overflow-y-auto pb-24">
+          {/* Chat history for the selected session */}
+          {chatTurns.length > 0 ? (
+            <div className="mb-6 space-y-3 w-full max-w-none">
+              <h2 className="text-lg font-semibold">Chat history</h2>
+              {chatTurns.map((t, idx) => (
+                <div key={t.turn_id ?? idx} className="border rounded p-3">
+                  <div className="text-xs text-gray-500 mb-2">
+                    Turn {idx + 1} • {new Date(t.created_at + "Z").toLocaleString()}
                   </div>
-                ))}
-              </div>
-            ) : (
-              chatTurns.length === 0 && <p className="text-gray-500">Enter a prompt or pick a chat to get started.</p>
-            )}
-          </>
+
+                  <div className="mb-2">
+                    <div className="text-xs font-semibold text-gray-600">Prompt</div>
+                    <div className="whitespace-pre-wrap">{t.prompt}</div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {t.responses.map((r, i) => (
+                      <div key={i} className="border rounded p-2">
+                        <div className="text-xs text-gray-500 mb-1">
+                          {r.provider.toUpperCase()}
+                        </div>
+                        <div className="whitespace-pre-wrap">
+                          <ReactMarkdown
+                            remarkPlugins={[remarkMath]}
+                            rehypePlugins={[rehypeKatex, rehypeMathCopy]}
+                            components={
+                              {
+                                "math-inline": MathInline,
+                                "math-block": MathBlock,
+                              } as unknown as import("react-markdown").Components
+                            }
+                          >
+                            {r.content}
+                          </ReactMarkdown>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            chatTurns.length === 0 && <p className="text-gray-500">Enter a prompt or pick a chat to get started.</p>
+          )}
+
         </div>
 
         {/* Prompt Input Section */}
-        <div className="mt-6">
+        <div className="fixed bottom-0 inset-x-0 z-40 bg-gray-50/95 backdrop-blur border-t border-gray-200 px-4 md:px-6 lg:px-8 py-3">
           <input
             type="text"
             placeholder={isSending ? "Sending…" : "Enter your prompt..."}
