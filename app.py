@@ -6,8 +6,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from core.pipeline import summarize
-from db import db
 from core.providers.models import ChatSession, ChatTurn
+from db import db
+
 
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:5173"], methods=["GET", "POST"])
@@ -40,9 +41,10 @@ def summarize_prompts():
     result = summarize(
         prompt,
         models,
-        chat_session,
-        summary_model,
-        llm_anonymous,
+        chat_session=chat_session,
+        summary_model=summary_model,
+        title_model="gemini",
+        llm_anonymous=llm_anonymous,
     )
     return jsonify(result)
 
@@ -64,15 +66,15 @@ def get_session_messages(session_id: int):
     turns = (
         ChatTurn.query.filter_by(session_id=session_id)
         .order_by(ChatTurn.created_at.asc())  # chronological
-        .options(selectinload(ChatTurn.outputs))  # avoid N+1
+        .options(selectinload(ChatTurn.outputs))  # avoid N+1 # pyright: ignore
         .all()
     )
 
     def pack_turn(t: ChatTurn):
         outs = t.outputs or []
 
-        summarizer = next((o for o in outs if o.provider == "summarizer"), None)
-        base = [o for o in outs if o.provider not in ("user", "summarizer")]
+        summarizer = next((o for o in outs if o.provider == "summarizer"), None) # pyright: ignore
+        base = [o for o in outs if o.provider not in ("user", "summarizer")] # pyright: ignore
 
         responses = []
         if summarizer:

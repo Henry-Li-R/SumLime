@@ -14,6 +14,15 @@ class GeminiProvider(LLMProvider):
             raise ValueError("GEMINI_API_KEY not set in environment variables")
         self.client = genai.Client(api_key=api_key)
 
+    def create_chat_title(self, prompt: str) -> str:
+        response = self.client.models.generate_content(
+            model="gemini-2.0-flash-lite",
+            contents=f"Given prompt below, generate descriptive chat title, without quotes, at max 35 chars\n" \
+            f"{prompt}",
+        )
+        text = (response.text or "").strip()
+        return text
+
     def query(
         self,
         prompt: str,

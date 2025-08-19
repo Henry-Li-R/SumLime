@@ -21,11 +21,13 @@ def summarize(
     models: list[str],
     chat_session: int | None = None,
     summary_model: str = "gemini",
+    title_model: str = "gemini",
     llm_anonymous: bool = True,
 ) -> dict:
 
     if chat_session is None:  # Create new chat if needed
-        new_session = ChatSession(title="Chat Title")
+        chat_title = MODEL_PROVIDERS[title_model].create_chat_title(prompt)
+        new_session = ChatSession(title=chat_title) # type: ignore
         db.session.add(new_session)
         db.session.commit()
         chat_session = new_session.id
@@ -35,10 +37,11 @@ def summarize(
     session.last_used = datetime.now(timezone.utc)
     db.session.commit()
 
+
     # Create new ChatTurn
     new_turn = ChatTurn(
-        session_id=chat_session,
-        prompt=prompt,
+        session_id=chat_session, # type: ignore
+        prompt=prompt, # type: ignore
     )
     db.session.add(new_turn)
     db.session.flush()  # ensure new_turn.id is populated before using it
@@ -55,7 +58,7 @@ def summarize(
         ]
     )
 
-    summary_prompt = f"""Compare and summarize the content of the following responses to the same prompt. Focus on similarities, differences in reasoning, and any ambiguities or omissions. Do not evaluate which model is better. The ultimate goal is obtaining accurate multifaceted information
+    summary_prompt = f"""Compare and summarize the content of the following responses to the same prompt. Begin by answering the user’s question based on the combined insights. Then analyze similarities and differences in reasoning, and note any ambiguities or missing details.
 
 Prompt:\n\n
 {prompt}\n\n

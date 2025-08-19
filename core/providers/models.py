@@ -5,7 +5,7 @@ from db import db
 class ChatSession(db.Model):
     __tablename__ = "chat_session"
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(200), nullable=False)
+    title = db.Column(db.String(40), default="Chat session", nullable=False)
     last_used = db.Column(
         db.DateTime,
         default=lambda: datetime.now(timezone.utc),
