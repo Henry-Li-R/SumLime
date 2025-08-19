@@ -43,7 +43,7 @@ def summarize_prompts():
         models,
         chat_session=chat_session,
         summary_model=summary_model,
-        title_model="gemini",
+        title_model="gemini", # avoid changing this default
         llm_anonymous=llm_anonymous,
     )
     return jsonify(result)
