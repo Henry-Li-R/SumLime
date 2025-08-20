@@ -3,7 +3,7 @@ from core.providers.base import LLMProvider
 import os
 
 from db import db
-from core.providers.models import ChatTurn, LLMOutput
+from core.providers.models import ChatSession, ChatTurn, LLMOutput
 
 
 class GeminiProvider(LLMProvider):
@@ -49,11 +49,8 @@ class GeminiProvider(LLMProvider):
             )
 
         # Fetch prior turns oldest→newest
-        prev_turns = (
-            ChatTurn.query.filter_by(session_id=chat_session)
-            .order_by(ChatTurn.created_at.asc())
-            .all()[:-1]  # newest turn has not been associated with any LLMOutput
-        )
+        prev_turns = ChatSession.query.get(chat_session).turns[:-1]
+        # Why [:-1]? B/c newest turn has not been associated with any LLMOutput
 
         for turn in prev_turns:
             if is_summarizing:
