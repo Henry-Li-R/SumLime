@@ -51,9 +51,10 @@ def summarize_prompts():
 @app.route("/sessions", methods=["GET"])
 def list_sessions():
     sessions = ChatSession.query.order_by(ChatSession.last_used.desc()).all()
+    print(sessions[0].last_used.isoformat())
     return jsonify(
         [
-            {"id": s.id, "title": s.title, "last_used": s.last_used.isoformat() + "Z"}
+            {"id": s.id, "title": s.title, "last_used": s.last_used.isoformat()}
             for s in sessions
         ]
     )

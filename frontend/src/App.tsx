@@ -184,7 +184,7 @@ function App() {
               {chatTurns.map((t, idx) => (
                 <div key={t.turn_id ?? idx} className="border rounded p-3">
                   <div className="text-xs text-gray-500 mb-2">
-                    Turn {idx + 1} • {new Date(t.created_at + "Z").toLocaleString()}
+                    Turn {idx + 1} • {new Date(t.created_at).toLocaleString()}
                   </div>
 
                   <div className="mb-2">

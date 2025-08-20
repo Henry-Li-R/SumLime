@@ -33,56 +33,42 @@ class DeepSeekProvider(LLMProvider):
         if system_message:
             messages.append({"role": "system", "content": system_message})
 
-        # Fetch prior turns oldest→newest (optionally cap with a LIMIT/K window)
-        prev_turns = ChatSession.query.get(chat_session).turns[:-1]
-        # Why [:-1]? B/c newest turn has not been associated with any LLMOutput
+        # 1) Prior turns (oldest→newest), exclude current turn in SQL
+        prev_turns = (
+            ChatTurn.query
+            .filter(ChatTurn.session_id == chat_session,
+                    ChatTurn.id != chat_turn)
+            .order_by(ChatTurn.created_at.asc(), ChatTurn.id.asc())
+            .all()
+        )
+        prev_turn_ids = [t.id for t in prev_turns]
+        if not prev_turn_ids:
+            prev_turn_ids = [-1]  # keep IN() valid but return 0 rows
 
+        # 2) Fetch the (single) DeepSeek output per turn (no ORDER BY needed)
+        outputs_by_turn = {
+            o.turn_id: o
+            for o in (
+                LLMOutput.query
+                .filter(LLMOutput.turn_id.in_(prev_turn_ids),
+                        LLMOutput.provider == "deepseek")
+                .all()
+            )
+        }
+
+        # 3) Build chat history
         for turn in prev_turns:
+            o = outputs_by_turn.get(turn.id)
             if is_summarizing:
-                # Prefer the latest summarizer_prompt for this turn; fall back to turn.prompt
-                sp_row = (
-                    LLMOutput.query.filter(
-                        LLMOutput.turn_id == turn.id,
-                        LLMOutput.summarizer_prompt.isnot(None),
-                    )
-                    .order_by(LLMOutput.created_at.desc())
-                    .first()
-                )
-                user_text = (
-                    sp_row.summarizer_prompt
-                    if sp_row and sp_row.summarizer_prompt
-                    else turn.prompt
-                )
-
-                # The assistant message should be the DeepSeek row produced under summarization
-                ds_row = (
-                    LLMOutput.query.filter(
-                        LLMOutput.turn_id == turn.id,
-                        LLMOutput.provider == "deepseek",
-                        LLMOutput.summarizer_prompt.isnot(None),
-                    )
-                    .order_by(LLMOutput.created_at.desc())
-                    .first()
-                )
+                # Prefer summarizer_prompt if present;
+                # otherwise fall back to the original prompt
+                user_text = o.summarizer_prompt if (o and o.summarizer_prompt) else turn.prompt
             else:
-                # Non-summarizing path: canonical prompt + DeepSeek base output (no summarizer_prompt)
                 user_text = turn.prompt
-                ds_row = (
-                    LLMOutput.query.filter(
-                        LLMOutput.turn_id == turn.id,
-                        LLMOutput.provider == "deepseek",
-                        LLMOutput.summarizer_prompt.is_(None),
-                    )
-                    .order_by(LLMOutput.created_at.desc())
-                    .first()
-                )
 
-            # Append user turn
             messages.append({"role": "user", "content": user_text})
-
-            # Append assistant turn if present
-            if ds_row and ds_row.content:
-                messages.append({"role": "assistant", "content": ds_row.content})
+            if o and o.content:
+                messages.append({"role": "assistant", "content": o.content})
 
         # Current user message (caller passes the correct prompt for current mode)
         messages.append({"role": "user", "content": prompt})
