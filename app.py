@@ -61,13 +61,7 @@ def list_sessions():
 
 @app.route("/sessions/<int:session_id>", methods=["GET"])
 def get_session_messages(session_id: int):
-
-    turns = (
-        ChatTurn.query.filter_by(session_id=session_id)
-        .order_by(ChatTurn.created_at.asc())  # chronological
-        .options(selectinload(ChatTurn.outputs))  # avoid N+1 # pyright: ignore
-        .all()
-    )
+    turns = ChatSession.query.get(session_id).turns
 
     def pack_turn(t: ChatTurn):
         outs = t.outputs or []
