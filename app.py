@@ -2,6 +2,7 @@ from sqlalchemy.orm import selectinload
 from flask_cors import CORS
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
+import os
 
 load_dotenv()
 
@@ -13,12 +14,10 @@ from db import db
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:5173"], methods=["GET", "POST"])
 
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///chat.db"
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///chat.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
-with app.app_context():
-    db.create_all()
 
 
 @app.route("/summarize", methods=["POST"])
