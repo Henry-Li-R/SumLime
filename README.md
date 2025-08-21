@@ -18,7 +18,7 @@ A simple web platform to interact with and compare responses from multiple large
 
 | Layer        | Tech                          |
 |--------------|-------------------------------|
-| Frontend     | React + Tailwind (planned)    |
+| Frontend     | React + Tailwind              |
 | Backend      | Flask API                     |
 | Models       | OpenAI, Anthropic, DeepSeek, Gemini |
 | Storage/Auth | Supabase (planned)            |
@@ -51,12 +51,12 @@ flask --app app --debug run
 
 ## 🛣 Roadmap
 
-- [ ] Frontend: multi-select model UI, input panel, output view
-- [ ] Cross-LLM summary + contradiction flagging
+- [ ] Frontend: multi-select model UI, input panel (with dynamic sending...visual response), output view (clear separation of user prompt and model responses)
+- [ ] Cross-LLM summary
 - [ ] SSE streaming (messages + claim updates)
 - [ ] Chat history database
 - [ ] Rate limit or token usage tracking
-- [ ] Markdown + LaTeX formatting toggle
+- [ ] LaTeX copy-paste
 - [ ] Auth + personal prompt history
 
 ## 🔍 Related Tools
