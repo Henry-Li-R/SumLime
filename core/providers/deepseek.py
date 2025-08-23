@@ -41,6 +41,7 @@ class DeepSeekProvider(LLMProvider):
             .order_by(ChatTurn.created_at.asc(), ChatTurn.id.asc())
             .all()
         )
+        
         prev_turn_ids = [t.id for t in prev_turns]
         if not prev_turn_ids:
             prev_turn_ids = [-1]  # keep IN() valid but return 0 rows

@@ -76,10 +76,10 @@ def get_session_messages(session_id: int):
         outs = t.outputs or []
 
         summarizer = next(
-            (o for o in outs if o.provider == "summarizer"), None
+            (o for o in outs if o.summarizer_prompt is not None), None
         )  # pyright: ignore
         base = [
-            o for o in outs if o.provider not in ("user", "summarizer")
+            o for o in outs if o.summarizer_prompt is None
         ]  # pyright: ignore
 
         responses = []

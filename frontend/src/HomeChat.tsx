@@ -100,6 +100,7 @@ export default function HomeChat() {
       });
 
       const data = await res.json();
+      setChatSession(data?.session_id ?? null);
       // Format `/summarize` response into a ChatTurn and append (preserve model order)
       const selectedModels = ["gemini", "deepseek"]; // [ ]: source from UI state if selectable
       const results = data?.results ?? {};

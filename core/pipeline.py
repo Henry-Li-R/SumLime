@@ -26,7 +26,6 @@ def summarize(
     llm_anonymous: bool = True,
 ) -> dict:
     
-
     if chat_session is None:  # Create new chat if needed
         chat_title = MODEL_PROVIDERS[title_model].create_chat_title(prompt)
         new_session = ChatSession(title=chat_title, user_id=g.user_id)  # type: ignore
