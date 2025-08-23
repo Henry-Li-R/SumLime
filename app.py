@@ -1,15 +1,14 @@
 from sqlalchemy.orm import selectinload
 from flask_cors import CORS
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, g
 from dotenv import load_dotenv
-import os
-
 load_dotenv()
+import os
 
 from core.pipeline import summarize
 from core.providers.models import ChatSession, ChatTurn
 from db import db
-
+from auth import auth_required
 
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:5173"], methods=["GET", "POST"])
@@ -19,8 +18,8 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
 
-
-@app.route("/summarize", methods=["POST"])
+@app.route("/api/summarize", methods=["POST"])
+@auth_required
 def summarize_prompts():
     data = request.get_json()
     prompt = data.get("prompt", "")
@@ -47,11 +46,14 @@ def summarize_prompts():
     )
     return jsonify(result)
 
-
-@app.route("/sessions", methods=["GET"])
+@app.route("/api/sessions", methods=["GET"])
+@auth_required
 def list_sessions():
-    sessions = ChatSession.query.order_by(ChatSession.last_used.desc()).all()
-    print(sessions[0].last_used.isoformat())
+    sessions = (
+        ChatSession.query
+        .filter_by(user_id=g.user_id)
+        .order_by(ChatSession.last_used.desc()).all()
+    )
     return jsonify(
         [
             {"id": s.id, "title": s.title, "last_used": s.last_used.isoformat()}
@@ -59,8 +61,8 @@ def list_sessions():
         ]
     )
 
-
-@app.route("/sessions/<int:session_id>", methods=["GET"])
+@app.route("/api/sessions/<int:session_id>", methods=["GET"])
+@auth_required
 def get_session_messages(session_id: int):
     turns = ChatSession.query.get(session_id).turns
 

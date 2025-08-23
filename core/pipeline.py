@@ -5,8 +5,9 @@ from core.providers.deepseek import DeepSeekProvider
 from core.providers.gemini import GeminiProvider
 
 from db import db
-from core.providers.models import ChatSession, ChatTurn, User
+from core.providers.models import ChatSession, ChatTurn
 from datetime import datetime, timezone
+from flask import g
 
 MODEL_PROVIDERS = {
     "deepseek": DeepSeekProvider(),
@@ -28,14 +29,7 @@ def summarize(
 
     if chat_session is None:  # Create new chat if needed
         chat_title = MODEL_PROVIDERS[title_model].create_chat_title(prompt)
-        
-        dummy_user = User.query.filter_by(username="dummy").first()
-        if not dummy_user:
-            dummy_user = User(username="dummy", email="dummy@example.com")
-            db.session.add(dummy_user)
-            db.session.commit()
-
-        new_session = ChatSession(title=chat_title, user_id=dummy_user.id)  # type: ignore
+        new_session = ChatSession(title=chat_title, user_id=g.user_id)  # type: ignore
         db.session.add(new_session)
         db.session.commit()
         chat_session = new_session.id

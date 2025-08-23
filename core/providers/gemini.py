@@ -17,10 +17,10 @@ class GeminiProvider(LLMProvider):
     def create_chat_title(self, prompt: str) -> str:
         response = self.client.models.generate_content(
             model="gemini-2.0-flash-lite",
-            contents=f"Given prompt below, generate descriptive chat title, without quotes, at max 35 chars\n" \
+            contents=f"Given prompt below, generate exactly one descriptive chat title, in a ready-to-use format without quotes, at max 35 chars\n" \
             f"{prompt}",
         )
-        text = (response.text or "").strip()
+        text = (response.text or "Chat session").strip()[:40] # db allows 40 chars
         return text
 
     def query(

@@ -29,7 +29,7 @@ sys.path.insert(0, str(parent_dir))
 # for 'autogenerate' support
 from app import app
 from db import db
-from core.providers.models import User, ChatSession, ChatTurn, LLMOutput
+from core.providers.models import ChatSession, ChatTurn, LLMOutput
 target_metadata = db.metadata
 
 # other values from the config, defined by the needs of env.py,

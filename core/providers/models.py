@@ -1,22 +1,19 @@
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import func
-from datetime import datetime, timezone
 from db import db
 
-
-class User(db.Model):
-    __tablename__ = "chat_user"
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
+class Profile(db.Model):
+    __tablename__ = "profiles"
+    id = db.Column(UUID(as_uuid=True), primary_key=True)  # == auth.users.id
+    username = db.Column(db.String, unique=True)
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
+
     chat_sessions = db.relationship(
         "ChatSession",
-        back_populates="user",
-        lazy="selectin",
+        back_populates="profile",
         cascade="all, delete-orphan",
-        order_by="ChatSession.last_used.desc()",
+        passive_deletes=True,
     )
-
 
 class ChatSession(db.Model):
     __tablename__ = "chat_session"
@@ -28,10 +25,6 @@ class ChatSession(db.Model):
         onupdate=func.now(),
     )
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
-    user_id = db.Column(
-        db.Integer, db.ForeignKey("chat_user.id", ondelete="CASCADE"), nullable=False
-    )
-    user = db.relationship("User", back_populates="chat_sessions")
     turns = db.relationship(
         "ChatTurn",
         back_populates="chat_session",
@@ -39,11 +32,15 @@ class ChatSession(db.Model):
         cascade="all, delete-orphan",
         order_by="ChatTurn.created_at.asc()",
     )
-
+    user_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("profiles.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    profile = db.relationship("Profile", back_populates="chat_sessions")
     __table_args__ = (
         db.Index("ix_chat_session_user_lastused", "user_id", "last_used"),
     )
-
 
 class ChatTurn(db.Model):
     __tablename__ = "chat_turn"
