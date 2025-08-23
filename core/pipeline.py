@@ -60,7 +60,7 @@ def summarize(
         ]
     )
 
-    summary_prompt = f"""Compare and summarize the content of the following responses to the same prompt. Begin by answering the user’s question based on the combined insights. Then analyze similarities and differences in reasoning, and note any ambiguities or missing details.
+    summary_prompt = f"""Compare and summarize the content of the following responses to the same prompt. Begin by answering the user’s question based on the combined insights; this should be the bulk of your response. Then analyze similarities and differences in reasoning, and note any ambiguities or missing details.
 
 Prompt:\n\n
 {prompt}\n\n

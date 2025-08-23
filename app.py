@@ -2,21 +2,25 @@ from sqlalchemy.orm import selectinload
 from flask_cors import CORS
 from flask import Flask, request, jsonify, g
 from dotenv import load_dotenv
+
 load_dotenv()
 import os
 
 from core.pipeline import summarize
 from core.providers.models import ChatSession, ChatTurn
 from db import db
-from auth import auth_required
+from auth import auth_required, set_rls_claims
 
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:5173"], methods=["GET", "POST"])
 
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///chat.db")
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+    "DATABASE_URL", "sqlite:///chat.db"
+)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
+
 
 @app.route("/api/summarize", methods=["POST"])
 @auth_required
@@ -41,18 +45,19 @@ def summarize_prompts():
         models,
         chat_session=chat_session,
         summary_model=summary_model,
-        title_model="gemini", # avoid changing this default
+        title_model="gemini",  # avoid changing this default
         llm_anonymous=llm_anonymous,
     )
     return jsonify(result)
+
 
 @app.route("/api/sessions", methods=["GET"])
 @auth_required
 def list_sessions():
     sessions = (
-        ChatSession.query
-        .filter_by(user_id=g.user_id)
-        .order_by(ChatSession.last_used.desc()).all()
+        ChatSession.query.filter_by(user_id=g.user_id)
+        .order_by(ChatSession.last_used.desc())
+        .all()
     )
     return jsonify(
         [
@@ -60,6 +65,7 @@ def list_sessions():
             for s in sessions
         ]
     )
+
 
 @app.route("/api/sessions/<int:session_id>", methods=["GET"])
 @auth_required
@@ -69,8 +75,12 @@ def get_session_messages(session_id: int):
     def pack_turn(t: ChatTurn):
         outs = t.outputs or []
 
-        summarizer = next((o for o in outs if o.provider == "summarizer"), None) # pyright: ignore
-        base = [o for o in outs if o.provider not in ("user", "summarizer")] # pyright: ignore
+        summarizer = next(
+            (o for o in outs if o.provider == "summarizer"), None
+        )  # pyright: ignore
+        base = [
+            o for o in outs if o.provider not in ("user", "summarizer")
+        ]  # pyright: ignore
 
         responses = []
         if summarizer:
