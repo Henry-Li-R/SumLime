@@ -70,7 +70,7 @@ LLM responses:\n\n
     summary = MODEL_PROVIDERS[summary_model].query(
         summary_prompt, new_turn.id, chat_session, is_summarizing=True
     )
-    results["summary"] = summary
+    results["summarizer"] = summary
 
     return {
         "prompt": prompt,

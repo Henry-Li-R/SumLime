@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useAuth } from './AuthProvider'
 import { apiFetch } from './api'
 
@@ -32,12 +32,25 @@ export default function HomeChat() {
   const [isSending, setIsSending] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(() => window.matchMedia("(min-width: 768px)").matches);
 
+  // Per-turn provider selection (default to summarizer if present)
+  const [selectedProviderByTurn, setSelectedProviderByTurn] = useState<Record<number, string>>({});
+  const pickDefaultProvider = (responses: LLMResponse[]) => {
+    const hasSummarizer = responses.find((r) => r.provider === "summarizer");
+    return hasSummarizer ? "summarizer" : (responses[0]?.provider ?? "");
+  };
+
+  const bottomRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     apiFetch(`${API_BASE}/api/sessions`)
       .then((r) => r.json())
       .then(setSessions)
       .catch(() => { });
   }, []);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [chatTurns]);
 
   const loadSession = async (id: number) => {
     setChatSession(id);
@@ -46,6 +59,14 @@ export default function HomeChat() {
       if (res.ok) {
         const data: ChatTurn[] = await res.json();
         setChatTurns(data);
+        // Initialize per-turn default provider (summarizer first if available)
+        setSelectedProviderByTurn(
+          Object.fromEntries(
+            data.map((t) => [t.turn_id, pickDefaultProvider(t.responses)])
+          )
+        );
+        // After loading a session, ensure scroll to bottom
+        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "auto", block: "end" }), 0);
       } else {
         setChatTurns([]);
       }
@@ -104,6 +125,12 @@ export default function HomeChat() {
       };
 
       setChatTurns((prev) => [...prev, newTurn]);
+
+      // Initialize selection for the new turn
+      setSelectedProviderByTurn((prev) => ({
+        ...prev,
+        [newTurn.turn_id]: pickDefaultProvider(newTurn.responses),
+      }));
 
       // Also refresh the sessions list so the left panel is up-to-date
       try {
@@ -210,6 +237,7 @@ export default function HomeChat() {
       <main className="flex-1 flex flex-col overflow-y-auto">
         {/* Output panel */}
         <div className="bg-white p-6 rounded-lg shadow mb-4 flex-1 min-h-0 overflow-y-auto pb-24">
+
           {/* Chat history for the selected session */}
           {chatTurns.length > 0 ? (
             <div className="mb-6 space-y-3 w-full max-w-none">
@@ -217,7 +245,7 @@ export default function HomeChat() {
               {chatTurns.map((t, idx) => (
                 <div key={t.turn_id ?? idx} className="border rounded p-3">
                   <div className="text-xs text-gray-500 mb-2">
-                    Turn {idx + 1} • {new Date(t.created_at).toLocaleString()}
+                    Turn {idx + 1}
                   </div>
 
                   <div className="mb-2">
@@ -226,27 +254,46 @@ export default function HomeChat() {
                   </div>
 
                   <div className="space-y-3">
-                    {t.responses.map((r, i) => (
-                      <div key={i} className="border rounded p-2">
-                        <div className="text-xs text-gray-500 mb-1">
-                          {r.provider.toUpperCase()}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-600">Model:</span>
+                      <select
+                        className="border rounded px-2 py-1 text-sm"
+                        value={selectedProviderByTurn[t.turn_id] ?? pickDefaultProvider(t.responses)}
+                        onChange={(e) =>
+                          setSelectedProviderByTurn((prev) => ({ ...prev, [t.turn_id]: e.target.value }))
+                        }
+                      >
+                        {t.responses.map((r) => (
+                          <option key={r.provider} value={r.provider}>
+                            {r.provider.toUpperCase()}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    {(() => {
+                      const sel = selectedProviderByTurn[t.turn_id] ?? pickDefaultProvider(t.responses);
+                      const r = t.responses.find((x) => x.provider === sel);
+                      if (!r) return null;
+                      return (
+                        <div className="border rounded p-2">
+                          <div className="text-xs text-gray-500 mb-1">{r.provider.toUpperCase()}</div>
+                          <div className="whitespace-pre-wrap">
+                            <ReactMarkdown
+                              remarkPlugins={[remarkMath]}
+                              rehypePlugins={[rehypeKatex, rehypeMathCopy]}
+                              components={
+                                {
+                                  "math-inline": MathInline,
+                                  "math-block": MathBlock,
+                                } as unknown as import("react-markdown").Components
+                              }
+                            >
+                              {r.content}
+                            </ReactMarkdown>
+                          </div>
                         </div>
-                        <div className="whitespace-pre-wrap">
-                          <ReactMarkdown
-                            remarkPlugins={[remarkMath]}
-                            rehypePlugins={[rehypeKatex, rehypeMathCopy]}
-                            components={
-                              {
-                                "math-inline": MathInline,
-                                "math-block": MathBlock,
-                              } as unknown as import("react-markdown").Components
-                            }
-                          >
-                            {r.content}
-                          </ReactMarkdown>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })()}
                   </div>
                 </div>
               ))}
@@ -273,6 +320,8 @@ export default function HomeChat() {
             className="w-full border border-gray-300 rounded px-4 py-2 shadow disabled:opacity-50"
           />
         </div>
+
+        <div ref={bottomRef} />
       </main>
     </div>
   );

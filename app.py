@@ -85,7 +85,7 @@ def get_session_messages(session_id: int):
         responses = []
         if summarizer:
             responses.append(
-                {"provider": summarizer.provider, "content": summarizer.content}
+                {"provider": "summarizer", "content": summarizer.content}
             )
         responses.extend({"provider": o.provider, "content": o.content} for o in base)
 
