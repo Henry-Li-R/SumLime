@@ -51,13 +51,11 @@ flask --app app --debug run
 
 ## 🛣 Roadmap
 
-- [ ] Frontend: multi-select model UI, input panel (with dynamic sending...visual response), output view (clear separation of user prompt and model responses)
-- [ ] Cross-LLM summary
+- [ ] Frontend: multi-select model UI, input panel (with dynamic sending...visual response), output view
+- [+] Cross-LLM summary
 - [ ] SSE streaming (messages + claim updates)
-- [ ] Chat history database
 - [ ] Rate limit or token usage tracking
-- [ ] LaTeX copy-paste
-- [ ] Auth + personal prompt history
+- [+] LaTeX copy-paste
 
 ## 🔍 Related Tools
 
