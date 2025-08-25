@@ -50,12 +50,15 @@ flask --app app --debug run
 
 
 ## 🛣 Roadmap
-
-- [ ] Frontend: multi-select model UI, input panel (with dynamic sending...visual response), output view
 - [+] Cross-LLM summary
-- [ ] SSE streaming (messages + claim updates)
-- [ ] Rate limit or token usage tracking
 - [+] LaTeX copy-paste
+- [ ] Rate limit or token usage tracking
+- [ ] Settings for choosing models (ordered list), summarizer on/off; handling different settings across sessions or settings changes inside session, db persistence potentially required
+- [ ] SSE streaming (messages + claim updates)
+- [ ] Option to retry or pause generating response
+- [ ] Improve scalability with long chat sessions
+
+
 
 ## 🔍 Related Tools
 

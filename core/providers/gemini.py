@@ -1,10 +1,9 @@
 from google import genai
-from core.providers.base import LLMProvider
+from core.providers.base import LLMProvider, llm_retry
 import os
 
 from db import db
 from core.providers.models import ChatSession, ChatTurn, LLMOutput
-
 
 class GeminiProvider(LLMProvider):
 
@@ -14,14 +13,22 @@ class GeminiProvider(LLMProvider):
             raise ValueError("GEMINI_API_KEY not set in environment variables")
         self.client = genai.Client(api_key=api_key)
 
-    def create_chat_title(self, prompt: str) -> str:
-        response = self.client.models.generate_content(
+    @llm_retry()
+    def _generate(self, *, contents: list[dict] | str):
+        return self.client.models.generate_content(
             model="gemini-2.0-flash-lite",
-            contents=f"Given prompt below, generate exactly one descriptive chat title, in a ready-to-use format without quotes, at max 35 chars\n" \
-            f"{prompt}",
+            contents=contents, # type: ignore
         )
-        text = (response.text or "Chat session").strip()[:40] # db allows 40 chars
-        return text
+
+    def create_chat_title(self, prompt: str) -> str:
+        response = self._generate(
+            contents=f"Given prompt below, generate exactly one descriptive chat title, in a ready-to-use format without quotes, at max 35 chars\n{prompt}",
+        )
+        try:
+            text = response.text or "Chat Session"
+        except (AttributeError, KeyError):
+            text = "Chat Session"
+        return text.strip()[:40]
 
     def query(
         self,
@@ -90,18 +97,19 @@ class GeminiProvider(LLMProvider):
         contents.append({"role": "user", "parts": [{"text": prompt}]})
 
         # Call Gemini
-        response = self.client.models.generate_content(
-            model="gemini-2.0-flash-lite",
-            contents=contents,
-        )
-        text = (response.text or "").strip()
+        response = self._generate(contents=contents)
+        try:
+            text = response.text or ""
+        except (AttributeError, KeyError):
+            text = ""
+        text = text.strip()
 
         # Persist output (provider='gemini'; summarizer_prompt only when summarizing)
         llm_output = LLMOutput(
-            turn_id=chat_turn,
-            provider="gemini",
-            summarizer_prompt=prompt if is_summarizing else None,
-            content=text,
+            turn_id=chat_turn, # type: ignore
+            provider="gemini", # type: ignore
+            summarizer_prompt=prompt if is_summarizing else None, # type: ignore
+            content=text, # type: ignore
         )
         db.session.add(llm_output)
         db.session.commit()

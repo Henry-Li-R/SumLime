@@ -1,4 +1,4 @@
-from core.providers.base import LLMProvider
+from core.providers.base import LLMProvider, llm_retry
 from openai import OpenAI
 import os
 
@@ -13,6 +13,14 @@ class DeepSeekProvider(LLMProvider):
         if not api_key:
             raise ValueError("DEEPSEEK_API_KEY not set in environment variables")
         self.client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
+
+    @llm_retry()
+    def _create_chat_completion(self, *, messages: list[dict]):
+        return self.client.chat.completions.create(
+            model="deepseek-chat",
+            messages=messages, # type: ignore
+            stream=False,
+        )
 
     def query(
         self,
@@ -75,10 +83,12 @@ class DeepSeekProvider(LLMProvider):
         messages.append({"role": "user", "content": prompt})
 
         # Call DeepSeek
-        response = self.client.chat.completions.create(
-            model="deepseek-chat", messages=messages, stream=False
-        )
-        text = (response.choices[0].message.content or "").strip()
+        response = self._create_chat_completion(messages=messages)
+        try:
+            text = response.choices[0].message.content or ""
+        except (AttributeError, IndexError, KeyError):
+            text = ""
+        text = text.strip()
 
         # Sanitize latex
         def sanitize_latex(text: str) -> str:
@@ -92,10 +102,10 @@ class DeepSeekProvider(LLMProvider):
 
         # Commit new LLMOutput to db
         llm_output = LLMOutput(
-            turn_id=chat_turn,
-            provider="deepseek",
-            summarizer_prompt=prompt if is_summarizing else None,
-            content=text,
+            turn_id=chat_turn, # type: ignore
+            provider="deepseek", # type: ignore
+            summarizer_prompt=prompt if is_summarizing else None, # type: ignore
+            content=text, # type: ignore
         )
         db.session.add(llm_output)
         db.session.commit()
