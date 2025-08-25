@@ -7,7 +7,7 @@ from core.providers.gemini import GeminiProvider
 from db import db
 from core.providers.models import ChatSession, ChatTurn
 from datetime import datetime, timezone
-from flask import g
+from flask import g, abort
 
 MODEL_PROVIDERS = {
     "deepseek": DeepSeekProvider(),
@@ -34,7 +34,9 @@ def summarize(
         chat_session = new_session.id
 
     # Update last_used time for current chat_session
-    session = ChatSession.query.get_or_404(chat_session)
+    session = db.session.get(ChatSession, chat_session)
+    if session is None:
+        abort(404)
     session.last_used = datetime.now(timezone.utc)
     db.session.commit()
 
