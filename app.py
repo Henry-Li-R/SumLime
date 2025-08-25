@@ -1,6 +1,6 @@
 from sqlalchemy.orm import selectinload
 from flask_cors import CORS
-from flask import Flask, request, jsonify, g
+from flask import Flask, request, jsonify, g, abort
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -54,11 +54,11 @@ def summarize_prompts():
 @app.route("/api/sessions", methods=["GET"])
 @auth_required
 def list_sessions():
-    sessions = (
-        ChatSession.query.filter_by(user_id=g.user_id)
+    sessions = db.session.execute(
+        db.select(ChatSession)
+        .filter_by(user_id=g.user_id)
         .order_by(ChatSession.last_used.desc())
-        .all()
-    )
+    ).scalars().all()
     return jsonify(
         [
             {"id": s.id, "title": s.title, "last_used": s.last_used.isoformat()}
@@ -70,7 +70,10 @@ def list_sessions():
 @app.route("/api/sessions/<int:session_id>", methods=["GET"])
 @auth_required
 def get_session_messages(session_id: int):
-    turns = ChatSession.query.get(session_id).turns
+    session_obj = db.session.get(ChatSession, session_id)
+    if session_obj is None:
+        abort(404)
+    turns = session_obj.turns
 
     def pack_turn(t: ChatTurn):
         outs = t.outputs or []
