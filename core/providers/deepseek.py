@@ -34,13 +34,11 @@ class DeepSeekProvider(LLMProvider):
             messages.append({"role": "system", "content": system_message})
 
         # 1) Prior turns (oldest→newest), exclude current turn in SQL
-        prev_turns = (
-            ChatTurn.query
-            .filter(ChatTurn.session_id == chat_session,
-                    ChatTurn.id != chat_turn)
+        prev_turns = db.session.execute(
+            db.select(ChatTurn)
+            .filter(ChatTurn.session_id == chat_session, ChatTurn.id != chat_turn)
             .order_by(ChatTurn.created_at.asc(), ChatTurn.id.asc())
-            .all()
-        )
+        ).scalars().all()
         
         prev_turn_ids = [t.id for t in prev_turns]
         if not prev_turn_ids:
@@ -49,12 +47,12 @@ class DeepSeekProvider(LLMProvider):
         # 2) Fetch the (single) DeepSeek output per turn (no ORDER BY needed)
         outputs_by_turn = {
             o.turn_id: o
-            for o in (
-                LLMOutput.query
-                .filter(LLMOutput.turn_id.in_(prev_turn_ids),
-                        LLMOutput.provider == "deepseek")
-                .all()
-            )
+            for o in db.session.execute(
+                db.select(LLMOutput).filter(
+                    LLMOutput.turn_id.in_(prev_turn_ids),
+                    LLMOutput.provider == "deepseek",
+                )
+            ).scalars().all()
         }
 
         # 3) Build chat history
