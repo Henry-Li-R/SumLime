@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider, useAuth } from './AuthProvider'
+import { AuthProvider } from './auth/AuthProvider'
+import { useAuth } from './auth/useAuth'
 import Login from './Login'
 import HomeChat from './HomeChat'
 import type { ReactNode } from 'react'

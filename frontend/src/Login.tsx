@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Auth } from '@supabase/auth-ui-react'
 import { ThemeSupa } from '@supabase/auth-ui-shared'
-import { supabase } from './supabaseClient'
+import { supabase } from './lib/supabaseClient'
 
 export default function Login() {
   const navigate = useNavigate()

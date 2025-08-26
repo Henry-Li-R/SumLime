@@ -1,13 +1,13 @@
 import { useEffect, useState, useRef } from 'react'
-import { useAuth } from './AuthProvider'
-import { apiFetch } from './api'
+import { useAuth } from './auth/useAuth.ts'
+import { apiFetch } from './lib/api.ts'
 
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
-import rehypeMathCopy from "../utils/rehypeMathCopy.ts"
-import { MathInline, MathBlock } from "../components/MathWrappers.tsx"
+import rehypeMathCopy from "./math/rehypeMathCopy.ts"
+import { MathInline, MathBlock } from "./math/MathWrappers.tsx"
 
 
 type Session = { id: number; title: string; last_used: string };
