@@ -18,7 +18,7 @@ class DeepSeekProvider(LLMProvider):
     def _create_chat_completion(self, *, messages: list[dict]):
         return self.client.chat.completions.create(
             model="deepseek-chat",
-            messages=messages, # type: ignore
+            messages=messages,  # type: ignore
             stream=False,
         )
 
@@ -42,12 +42,16 @@ class DeepSeekProvider(LLMProvider):
             messages.append({"role": "system", "content": system_message})
 
         # 1) Prior turns (oldest→newest), exclude current turn in SQL
-        prev_turns = db.session.execute(
-            db.select(ChatTurn)
-            .filter(ChatTurn.session_id == chat_session, ChatTurn.id != chat_turn)
-            .order_by(ChatTurn.created_at.asc(), ChatTurn.id.asc())
-        ).scalars().all()
-        
+        prev_turns = (
+            db.session.execute(
+                db.select(ChatTurn)
+                .filter(ChatTurn.session_id == chat_session, ChatTurn.id != chat_turn)
+                .order_by(ChatTurn.created_at.asc(), ChatTurn.id.asc())
+            )
+            .scalars()
+            .all()
+        )
+
         prev_turn_ids = [t.id for t in prev_turns]
         if not prev_turn_ids:
             prev_turn_ids = [-1]  # keep IN() valid but return 0 rows
@@ -60,7 +64,9 @@ class DeepSeekProvider(LLMProvider):
                     LLMOutput.turn_id.in_(prev_turn_ids),
                     LLMOutput.provider == "deepseek",
                 )
-            ).scalars().all()
+            )
+            .scalars()
+            .all()
         }
 
         # 3) Build chat history
@@ -69,7 +75,9 @@ class DeepSeekProvider(LLMProvider):
             if is_summarizing:
                 # Prefer summarizer_prompt if present;
                 # otherwise fall back to the original prompt
-                user_text = o.summarizer_prompt if (o and o.summarizer_prompt) else turn.prompt
+                user_text = (
+                    o.summarizer_prompt if (o and o.summarizer_prompt) else turn.prompt
+                )
             else:
                 user_text = turn.prompt
 
@@ -100,10 +108,10 @@ class DeepSeekProvider(LLMProvider):
 
         # Commit new LLMOutput to db
         llm_output = LLMOutput(
-            turn_id=chat_turn, # type: ignore
-            provider="deepseek", # type: ignore
-            summarizer_prompt=prompt if is_summarizing else None, # type: ignore
-            content=text, # type: ignore
+            turn_id=chat_turn,  # type: ignore
+            provider="deepseek",  # type: ignore
+            summarizer_prompt=prompt if is_summarizing else None,  # type: ignore
+            content=text,  # type: ignore
         )
         db.session.add(llm_output)
         db.session.commit()

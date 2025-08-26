@@ -1,7 +1,12 @@
 from abc import ABC, abstractmethod
 
 # --- Retry utility imports for LLM APIs ---
-from tenacity import retry, stop_after_attempt, wait_exponential_jitter, retry_if_exception
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential_jitter,
+    retry_if_exception,
+)
 from openai import APIStatusError, APIConnectionError, RateLimitError, APITimeoutError
 import requests
 
@@ -27,6 +32,7 @@ class LLMProvider(ABC):
 
 _RETRYABLE_HTTP = {408, 429, 500, 502, 503, 504}
 
+
 def is_retryable_llm(exc: BaseException) -> bool:
     """Classify transient errors for LLM providers (OpenAI-compatible or raw HTTP)."""
     # Raw HTTP clients
@@ -41,6 +47,7 @@ def is_retryable_llm(exc: BaseException) -> bool:
         status = getattr(exc, "status_code", None)
         return status in _RETRYABLE_HTTP
     return False
+
 
 def llm_retry(max_attempts: int = 3, initial: float = 0.5, max_wait: float = 2.5):
     """Decorator factory for a standard retry policy across LLM providers."""

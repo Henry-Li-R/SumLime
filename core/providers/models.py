@@ -2,6 +2,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import func
 from db import db
 
+
 class Profile(db.Model):
     __tablename__ = "profiles"
     id = db.Column(UUID(as_uuid=True), primary_key=True)  # == auth.users.id
@@ -14,6 +15,7 @@ class Profile(db.Model):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+
 
 class ChatSession(db.Model):
     __tablename__ = "chat_session"
@@ -41,6 +43,7 @@ class ChatSession(db.Model):
     __table_args__ = (
         db.Index("ix_chat_session_user_lastused", "user_id", "last_used"),
     )
+
 
 class ChatTurn(db.Model):
     __tablename__ = "chat_turn"
@@ -76,6 +79,4 @@ class LLMOutput(db.Model):
     )
     turn = db.relationship("ChatTurn", back_populates="outputs")
 
-    __table_args__ = (
-        db.Index("ix_llm_output_turn_created", "turn_id", "created_at"),
-    )
+    __table_args__ = (db.Index("ix_llm_output_turn_created", "turn_id", "created_at"),)

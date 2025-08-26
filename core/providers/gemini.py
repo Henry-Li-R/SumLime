@@ -5,6 +5,7 @@ import os
 from db import db
 from core.providers.models import ChatTurn, LLMOutput
 
+
 class GeminiProvider(LLMProvider):
 
     def __init__(self):
@@ -17,7 +18,7 @@ class GeminiProvider(LLMProvider):
     def _generate(self, *, contents: list[dict] | str):
         return self.client.models.generate_content(
             model="gemini-2.0-flash-lite",
-            contents=contents, # type: ignore
+            contents=contents,  # type: ignore
         )
 
     def create_chat_title(self, prompt: str) -> str:
@@ -56,11 +57,15 @@ class GeminiProvider(LLMProvider):
             )
 
         # 1) Prior turns (oldest→newest), exclude current turn in SQL
-        prev_turns = db.session.execute(
-            db.select(ChatTurn)
-            .filter(ChatTurn.session_id == chat_session, ChatTurn.id != chat_turn)
-            .order_by(ChatTurn.created_at.asc(), ChatTurn.id.asc())
-        ).scalars().all()
+        prev_turns = (
+            db.session.execute(
+                db.select(ChatTurn)
+                .filter(ChatTurn.session_id == chat_session, ChatTurn.id != chat_turn)
+                .order_by(ChatTurn.created_at.asc(), ChatTurn.id.asc())
+            )
+            .scalars()
+            .all()
+        )
         prev_turn_ids = [t.id for t in prev_turns]
         if not prev_turn_ids:
             prev_turn_ids = [-1]  # keep IN() valid but return 0 rows
@@ -73,7 +78,9 @@ class GeminiProvider(LLMProvider):
                     LLMOutput.turn_id.in_(prev_turn_ids),
                     LLMOutput.provider == "gemini",
                 )
-            ).scalars().all()
+            )
+            .scalars()
+            .all()
         }
 
         # 3) Build chat history
@@ -82,14 +89,15 @@ class GeminiProvider(LLMProvider):
             if is_summarizing:
                 # Prefer summarizer_prompt if present;
                 # otherwise fall back to the original prompt
-                user_text = o.summarizer_prompt if (o and o.summarizer_prompt) else turn.prompt
+                user_text = (
+                    o.summarizer_prompt if (o and o.summarizer_prompt) else turn.prompt
+                )
             else:
                 user_text = turn.prompt
 
             contents.append({"role": "user", "parts": [{"text": user_text}]})
             if o and o.content:
                 contents.append({"role": "model", "parts": [{"text": o.content}]})
-
 
         # Current user message
         contents.append({"role": "user", "parts": [{"text": prompt}]})
@@ -104,10 +112,10 @@ class GeminiProvider(LLMProvider):
 
         # Persist output (provider='gemini'; summarizer_prompt only when summarizing)
         llm_output = LLMOutput(
-            turn_id=chat_turn, # type: ignore
-            provider="gemini", # type: ignore
-            summarizer_prompt=prompt if is_summarizing else None, # type: ignore
-            content=text, # type: ignore
+            turn_id=chat_turn,  # type: ignore
+            provider="gemini",  # type: ignore
+            summarizer_prompt=prompt if is_summarizing else None,  # type: ignore
+            content=text,  # type: ignore
         )
         db.session.add(llm_output)
         db.session.commit()
