@@ -11,7 +11,7 @@ from db import db
 from auth import auth_required
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:5173"], methods=["GET", "POST"])
+CORS(app, origins=[os.environ.get("FRONTEND_URL", "http://localhost:5173")], methods=["GET", "POST"])
 
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
     "DATABASE_URL", "sqlite:///chat.db"
