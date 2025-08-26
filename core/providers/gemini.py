@@ -3,7 +3,7 @@ from core.providers.base import LLMProvider, llm_retry
 import os
 
 from db import db
-from core.providers.models import ChatSession, ChatTurn, LLMOutput
+from core.providers.models import ChatTurn, LLMOutput
 
 class GeminiProvider(LLMProvider):
 

@@ -1,4 +1,3 @@
-from sqlalchemy.orm import selectinload
 from flask_cors import CORS
 from flask import Flask, request, jsonify, g, abort
 from dotenv import load_dotenv
@@ -9,7 +8,7 @@ import os
 from core.pipeline import summarize
 from core.providers.models import ChatSession, ChatTurn
 from db import db
-from auth import auth_required, set_rls_claims
+from auth import auth_required
 
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:5173"], methods=["GET", "POST"])
@@ -79,10 +78,10 @@ def get_session_messages(session_id: int):
         outs = t.outputs or []
 
         summarizer = next(
-            (o for o in outs if o.summarizer_prompt is not None), None
+            (o for o in outs if o.summarizer_prompt is not None), None # type: ignore
         )  # pyright: ignore
         base = [
-            o for o in outs if o.summarizer_prompt is None
+            o for o in outs if o.summarizer_prompt is None # type: ignore
         ]  # pyright: ignore
 
         responses = []
@@ -99,7 +98,7 @@ def get_session_messages(session_id: int):
             "responses": responses,
         }
 
-    return jsonify([pack_turn(t) for t in turns])
+    return jsonify([pack_turn(t) for t in turns]) # type: ignore
 
 
 if __name__ == "__main__":

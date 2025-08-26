@@ -3,7 +3,7 @@ from openai import OpenAI
 import os
 
 from db import db
-from core.providers.models import ChatSession, ChatTurn, LLMOutput
+from core.providers.models import ChatTurn, LLMOutput
 
 
 class DeepSeekProvider(LLMProvider):
