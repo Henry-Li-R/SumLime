@@ -1,22 +1,36 @@
 import { visit } from "unist-util-visit";
-import type { Root } from "hast";
+import type { Root, Element, Parent, Properties, Node, Text } from "hast";
 
-function hasKatexClass(node: any): boolean {
-  const cn = node?.properties?.className;
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
+function isElement(n: unknown): n is Element {
+  return isRecord(n) && n.type === "element" && typeof n.tagName === "string";
+}
+
+function isText(n: unknown): n is Text {
+  return isRecord(n) && n.type === "text" && typeof n.value === "string";
+}
+
+function hasKatexClass(node: Element): boolean {
+  const props = (isRecord(node.properties) ? (node.properties as Properties) : undefined);
+  const cn = props?.className as unknown;
   if (Array.isArray(cn)) return cn.includes("katex");
   if (typeof cn === "string") return cn.split(/\s+/).includes("katex");
   return false;
 }
 
-function extractTexFromAnnotation(node: any): string | null {
-  if (!node?.children) return null;
+function extractTexFromAnnotation(node: Node): string | null {
+  if (!isElement(node) || !Array.isArray(node.children)) return null;
+
   for (const c of node.children) {
-    if (
-      c?.tagName === "annotation" &&
-      c?.properties?.encoding === "application/x-tex" &&
-      typeof c?.children?.[0]?.value === "string"
-    ) {
-      return c.children[0].value as string;
+    if (isElement(c) && c.tagName === "annotation") {
+      const props = (isRecord(c.properties) ? (c.properties as Properties) : undefined);
+      if (props?.encoding === "application/x-tex") {
+        const first = c.children?.[0];
+        if (isText(first)) return first.value;
+      }
     }
     const deep = extractTexFromAnnotation(c);
     if (deep) return deep;
@@ -26,27 +40,26 @@ function extractTexFromAnnotation(node: any): string | null {
 
 export default function rehypeMathCopy() {
   return (tree: Root) => {
-    visit(tree, "element", (node: any, index: number | null | undefined, parent: any) => {
-      if (!parent || typeof(index) !== "number") return;
+    visit(tree, "element", (node, index, parent) => {
+      if (!isElement(node)) return;
+      if (typeof index !== "number") return;
+      if (!parent || !("children" in parent)) return;
       if (!hasKatexClass(node)) return;
 
       const tex = extractTexFromAnnotation(node) ?? "";
-
-      // inline if parent is p/span, else block
       const wrapperTag =
-        parent.tagName === "p" || parent.tagName === "span"
+        (isElement(parent) && (parent.tagName === "p" || parent.tagName === "span"))
           ? "math-inline"
           : "math-block";
 
-      const wrapper = {
+      const wrapper: Element = {
         type: "element",
         tagName: wrapperTag,
         properties: { "data-tex": tex },
         children: [node],
       };
 
-      // Replace the KaTeX node with our wrapper
-      parent.children[index] = wrapper;
+      (parent as Parent).children[index] = wrapper;
     });
   };
 }

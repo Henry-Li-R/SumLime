@@ -1,14 +1,20 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from './supabaseClient'
-import type { Session, User } from '@supabase/supabase-js'
+import type { Session, User, AuthError } from '@supabase/supabase-js'
 
 type AuthCtx = {
   session: Session | null
   user: User | null
   loading: boolean
-  signOut: () => Promise<void>
+  signOut: () => Promise<{ error: AuthError | null }>
 }
-const Ctx = createContext<AuthCtx>({ session: null, user: null, loading: true, signOut: async () => {} })
+const Ctx = createContext<AuthCtx>({
+  session: null,
+  user: null,
+  loading: true,
+  signOut: async (): Promise<{ error: AuthError | null }> => ({ error: null })
+});
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(Ctx)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

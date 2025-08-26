@@ -2,11 +2,12 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './AuthProvider'
 import Login from './Login'
 import HomeChat from './HomeChat'
+import type { ReactNode } from 'react'
 
-function Protected({ children }: { children: JSX.Element }) {
+function Protected({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth()
   if (loading) return <div className="p-6">Loading…</div>
-  return user ? children : <Navigate to="/login" replace />
+  return user ? <>{children}</> : <Navigate to="/login" replace />
 }
 
 export default function App() {

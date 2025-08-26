@@ -1,25 +1,30 @@
-export function MathInline(props: any) {
-  const tex = props["data-tex"] ?? "";
+import type {ReactNode} from "react";
+
+type MathProps = {
+  children?: ReactNode;
+  "data-tex"?: string;
+};
+
+export function MathInline({ children, ["data-tex"]: tex = "" }: MathProps) {
   return (
     <span
       className="group relative inline-flex items-baseline cursor-pointer"
       onClick={() => navigator.clipboard.writeText(tex)}
       title="Copy LaTeX"
     >
-      <span className="katex-wrapper">{props.children}</span>
+      <span className="katex-wrapper">{children}</span>
     </span>
   );
 }
 
-export function MathBlock(props: any) {
-  const tex = props["data-tex"] ?? "";
+export function MathBlock({children, ["data-tex"]: tex = ""}: MathProps) {
   return (
     <div
       className="group relative my-2 cursor-pointer"
       onClick={() => navigator.clipboard.writeText(tex)}
       title="Copy LaTeX"
     >
-      <div className="katex-wrapper overflow-x-auto">{props.children}</div>
+      <div className="katex-wrapper overflow-x-auto">{children}</div>
     </div>
   );
 }
