@@ -39,6 +39,12 @@ def _verify_supabase_jwt(token: str) -> dict:
 def auth_required(fn):
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
+        # CORS preflight requests hit the endpoint with the OPTIONS method and
+        # without authorization headers.  Skip authentication so that browsers
+        # can complete the preflight successfully.
+        if request.method == "OPTIONS":
+            return ("", 204)
+
         auth = request.headers.get("Authorization", "")
         if not auth.startswith("Bearer "):
             abort(401)

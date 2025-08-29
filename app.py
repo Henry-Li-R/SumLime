@@ -12,7 +12,21 @@ from db import db
 from auth import auth_required, set_rls_claims
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:5173"], methods=["GET", "POST"])
+
+# Allow CORS from configurable origins.  Railway sets FRONTEND_URL to the
+# deployed Vercel URL, but fall back to allowing all origins so local testing
+# still works without additional configuration.
+_cors_origins = os.environ.get("CORS_ALLOWED_ORIGINS", "*")
+_allow_headers = ["Content-Type", "Authorization"]
+if _cors_origins == "*":
+    CORS(app, supports_credentials=True, allow_headers=_allow_headers)
+else:
+    CORS(
+        app,
+        origins=[o.strip() for o in _cors_origins.split(",") if o.strip()],
+        supports_credentials=True,
+        allow_headers=_allow_headers,
+    )
 
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
     "DATABASE_URL", "sqlite:///chat.db"
@@ -22,7 +36,17 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db.init_app(app)
 
 
-@app.route("/api/summarize", methods=["POST"])
+@app.route("/healthz", methods=["GET"])
+def health_check():
+    """Liveness probe endpoint used by Railway.
+
+    It avoids touching the database or any external services so that the
+    platform can reliably verify the container is running.
+    """
+    return jsonify({"status": "ok"})
+
+
+@app.route("/api/summarize", methods=["POST", "OPTIONS"])
 @auth_required
 def summarize_prompts():
     data = request.get_json()
@@ -51,7 +75,7 @@ def summarize_prompts():
     return jsonify(result)
 
 
-@app.route("/api/sessions", methods=["GET"])
+@app.route("/api/sessions", methods=["GET", "OPTIONS"])
 @auth_required
 def list_sessions():
     sessions = db.session.execute(
@@ -67,7 +91,7 @@ def list_sessions():
     )
 
 
-@app.route("/api/sessions/<int:session_id>", methods=["GET"])
+@app.route("/api/sessions/<int:session_id>", methods=["GET", "OPTIONS"])
 @auth_required
 def get_session_messages(session_id: int):
     session_obj = db.session.get(ChatSession, session_id)

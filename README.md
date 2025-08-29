@@ -45,6 +45,16 @@ Start the Flask server:
 flask --app app --debug run
 ```
 
+### CORS configuration
+
+When deploying the API you may need to allow requests from a separate
+frontend domain.  Set the `CORS_ALLOWED_ORIGINS` environment variable to a
+comma-separated list of allowed origins (for example, your Vercel URL).  If
+unset the server allows all origins which is convenient for local testing.
+
+The server also exposes a lightweight `GET /healthz` endpoint that Railway can
+use for liveness probes.
+
 ## 🧪 Example API Usage
 
 
