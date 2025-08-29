@@ -1,52 +1,4 @@
-# app.py (temporary minimal)
-from flask import Flask, request, make_response
-
-app = Flask(__name__)
-
-@app.before_request
-def _preflight_shortcircuit():
-    if request.method == "OPTIONS":
-        # Minimal 204 with CORS so preflight cannot fail
-        resp = make_response("", 204)
-        origin = request.headers.get("Origin", "*")
-        resp.headers["Access-Control-Allow-Origin"] = origin
-        resp.headers["Vary"] = "Origin"
-        resp.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS,PUT,PATCH,DELETE"
-        resp.headers["Access-Control-Allow-Headers"] = request.headers.get(
-            "Access-Control-Request-Headers", "Authorization, Content-Type"
-        )
-        resp.headers["Access-Control-Max-Age"] = "600"
-        return resp
-
-@app.after_request
-def _force_cors(resp):
-    # Ensure every response (even errors) has CORS
-    origin = request.headers.get("Origin", "*")
-    resp.headers.setdefault("Access-Control-Allow-Origin", origin)
-    resp.headers.setdefault("Vary", "Origin")
-    resp.headers.setdefault("Access-Control-Allow-Methods", "GET,POST,OPTIONS,PUT,PATCH,DELETE")
-    resp.headers.setdefault("Access-Control-Allow-Headers", "Authorization, Content-Type")
-    resp.headers.setdefault("Access-Control-Max-Age", "600")
-    return resp
-
-@app.route("/", methods=["GET"])
-def root():
-    return "root ok", 200
-
-@app.route("/healthz", methods=["GET"])
-def healthz():
-    return "ok", 200
-
-@app.route("/api/sessions", methods=["GET","POST"])
-def sessions():
-    return {"ok": True}, 200
-
-# local dev only; Railway uses gunicorn
-if __name__ == "__main__":
-    import os
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5050)))
-
-"""from flask_cors import CORS
+from flask_cors import CORS
 from flask import Flask, request, jsonify, g, abort
 from werkzeug.exceptions import HTTPException
 from dotenv import load_dotenv
@@ -61,15 +13,6 @@ from auth import auth_required
 
 app = Flask(__name__)
 
-CORS(
-  app,
-  resources={r"/*": {"origins": "*"}},   # all routes
-  allow_headers="*",                      # all headers
-  methods=["GET","POST","OPTIONS","PUT","PATCH","DELETE"],
-  max_age=600
-)
-
-'''
 ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "https://sum-lime.vercel.app",  # production
@@ -85,7 +28,7 @@ CORS(
     max_age=600,
     supports_credentials=False,  # set True only if you actually use cookies
 )
-'''
+
 
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
     "DATABASE_URL", "sqlite:///chat.db"
@@ -104,23 +47,8 @@ def healthz():
 @app.before_request
 def _preflight_shortcircuit():
     if request.method == "OPTIONS":
-        print("OPTIONS", request.path, "Origin:", request.headers.get("Origin"))
         return ("", 204)
 
-# Force CORS on all responses
-@app.after_request
-def _ensure_cors(resp):
-    # If Flask-CORS didn't set ACAO (e.g., early exception), set the basics.
-    if "Access-Control-Allow-Origin" not in resp.headers:
-        origin = request.headers.get("Origin")
-        resp.headers["Access-Control-Allow-Origin"] = origin or "*"
-        resp.headers["Vary"] = "Origin"
-        resp.headers["Access-Control-Allow-Headers"] = request.headers.get(
-            "Access-Control-Request-Headers", "Authorization, Content-Type"
-        )
-        resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, PATCH, DELETE"
-        resp.headers["Access-Control-Max-Age"] = "600"
-    return resp
 
 @app.errorhandler(Exception)
 def handle_exception(e):
@@ -221,4 +149,4 @@ def get_session_messages(session_id: int):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5050)), debug=False)"""
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5050)), debug=False)
