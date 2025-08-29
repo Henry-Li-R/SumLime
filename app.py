@@ -4,7 +4,7 @@ from werkzeug.exceptions import HTTPException
 from dotenv import load_dotenv
 
 load_dotenv()
-import os
+import os, re
 
 from core.pipeline import summarize
 from core.providers.models import ChatSession, ChatTurn
@@ -12,14 +12,27 @@ from db import db
 from auth import auth_required
 
 app = Flask(__name__)
+
+# Vercel staging URLs
+VERCEL_REGEX = r"https://sum-lime(-git-[\w-]+)-henry-lis-projects-6da959dc\.vercel\.app"
+
 CORS(
     app,
-    origins=[
-        os.environ.get("FRONTEND_URL", "http://localhost:5173"),
-        "https://sum-lime-git-staging-fixes-henry-lis-projects-6da959dc.vercel.app", # staging
-    ],
-    methods=["GET", "POST"],
+    resources={
+        r"/api/*": {
+            "origins": [
+                "http://localhost:5173",
+                "https://sum-lime.vercel.app",  # production
+                re.compile(VERCEL_REGEX),
+            ]
+        },  # staging
+    },
+    allow_headers=["Authorization", "Content-Type"],
+    methods=["GET", "POST", "OPTIONS"],
+    max_age=600,
+    supports_credentials=False,  # set True only if you actually use cookies
 )
+
 
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
     "DATABASE_URL", "sqlite:///chat.db"
@@ -32,6 +45,7 @@ db.init_app(app)
 @app.get("/healthz")
 def healthz():
     return "ok", 200
+
 
 @app.errorhandler(Exception)
 def handle_exception(e):
@@ -132,4 +146,4 @@ def get_session_messages(session_id: int):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5050)), debug=False)
+    app.run(port=5050, debug=True)
