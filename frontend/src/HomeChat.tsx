@@ -18,7 +18,7 @@ type ChatTurn = {
   responses: LLMResponse[];
 }
 
-const API_BASE = import.meta.env.BACKEND_URL || "http://localhost:5050";
+const API_BASE = import.meta.env.VITE_BACKEND_URL || "http://localhost:5050";
 
 
 export default function HomeChat() {
