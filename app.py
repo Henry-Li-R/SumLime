@@ -14,7 +14,10 @@ from auth import auth_required
 app = Flask(__name__)
 CORS(
     app,
-    origins=[os.environ.get("FRONTEND_URL", "http://localhost:5173")],
+    origins=[
+        os.environ.get("FRONTEND_URL", "http://localhost:5173"),
+        "https://sum-lime-git-staging-fixes-henry-lis-projects-6da959dc.vercel.app", # staging
+    ],
     methods=["GET", "POST"],
 )
 
