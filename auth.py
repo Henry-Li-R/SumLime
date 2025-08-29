@@ -72,7 +72,7 @@ def ensure_profile_exists(user_id_str: str) -> None:
     if exists:
         return
     # When user signs up, they exist in auth.users, and not yet in Profile
-    db.session.add(Profile(id=user_uuid))
+    db.session.add(Profile(id=user_uuid)) # type: ignore
     try:
         db.session.commit()
     except Exception:
