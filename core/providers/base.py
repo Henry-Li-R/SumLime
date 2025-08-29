@@ -1,18 +1,18 @@
 from abc import ABC, abstractmethod
 import logging
 
-logger = logging.getLogger(__name__)
-
 # --- Retry utility imports for LLM APIs ---
 from tenacity import (
     retry,
     stop_after_attempt,
     wait_exponential_jitter,
     retry_if_exception,
-    before_sleep_log
+    before_sleep_log,
 )
 from openai import APIStatusError, APIConnectionError, RateLimitError, APITimeoutError
 import requests
+
+logger = logging.getLogger(__name__)
 
 
 class LLMProvider(ABC):

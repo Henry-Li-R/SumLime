@@ -2,7 +2,7 @@ from openai import OpenAI
 from core.providers.base import LLMProvider
 import os
 
-
+# [ ] Not implemented
 class ChatGPTProvider(LLMProvider):
     def __init__(self):
         api_key = os.environ.get("CHATGPT_API_KEY")

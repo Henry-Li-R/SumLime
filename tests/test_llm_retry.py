@@ -14,7 +14,13 @@ RETRYABLE_STATUSES = {408, 429, 500, 502, 503, 504}
 
 class DummyStatusError(APIStatusError):
     """APIStatusError test double backed by an httpx.Response."""
-    def __init__(self, status_code: int, message: str = "status error", body: bytes | str | dict | None = None):
+
+    def __init__(
+        self,
+        status_code: int,
+        message: str = "status error",
+        body: bytes | str | dict | None = None,
+    ):
         if isinstance(body, (bytes, bytearray)):
             content = body
         elif isinstance(body, str):
@@ -36,56 +42,78 @@ class DummyStatusError(APIStatusError):
 
 # ---------- Unit tests: predicate ----------
 
-@pytest.mark.parametrize("exc", [
-    requests.Timeout("timeout"),
-    requests.ConnectionError("conn error"),
-    # OpenAI v1 exception instances with required args
-    APIConnectionError(message="api conn", request=httpx.Request("GET", "https://example.test")),
-    APITimeoutError(httpx.Request("GET", "https://example.test")),
-    RateLimitError(
-        message="rate limit",
-        response=httpx.Response(429, request=httpx.Request("GET", "https://example.test")),
-        body=None,
-    ),
-    *[DummyStatusError(s) for s in RETRYABLE_STATUSES],
-])
+
+@pytest.mark.parametrize(
+    "exc",
+    [
+        requests.Timeout("timeout"),
+        requests.ConnectionError("conn error"),
+        # OpenAI v1 exception instances with required args
+        APIConnectionError(
+            message="api conn", request=httpx.Request("GET", "https://example.test")
+        ),
+        APITimeoutError(httpx.Request("GET", "https://example.test")),
+        RateLimitError(
+            message="rate limit",
+            response=httpx.Response(
+                429, request=httpx.Request("GET", "https://example.test")
+            ),
+            body=None,
+        ),
+        *[DummyStatusError(s) for s in RETRYABLE_STATUSES],
+    ],
+)
 def test_is_retryable_llm_true(exc):
     assert is_retryable_llm(exc) is True
 
 
-@pytest.mark.parametrize("exc", [
-    Exception("generic"),
-    RuntimeError("not retryable"),
-    DummyStatusError(418),   # not in RETRYABLE_STATUSES
-    DummyStatusError(404),   # not in RETRYABLE_STATUSES
-])
+@pytest.mark.parametrize(
+    "exc",
+    [
+        Exception("generic"),
+        RuntimeError("not retryable"),
+        DummyStatusError(418),  # not in RETRYABLE_STATUSES
+        DummyStatusError(404),  # not in RETRYABLE_STATUSES
+    ],
+)
 def test_is_retryable_llm_false(exc):
     assert is_retryable_llm(exc) is False
 
 
 # ---------- Integration tests: decorator retries ----------
 
+
 def _make_api_conn_err():
-    return APIConnectionError(message="api conn", request=httpx.Request("GET", "https://example.test"))
+    return APIConnectionError(
+        message="api conn", request=httpx.Request("GET", "https://example.test")
+    )
+
 
 def _make_api_timeout_err():
     return APITimeoutError(request=httpx.Request("GET", "https://example.test"))
 
+
 def _make_rate_limit_err():
     return RateLimitError(
         message="rate limit",
-        response=httpx.Response(429, request=httpx.Request("GET", "https://example.test")),
+        response=httpx.Response(
+            429, request=httpx.Request("GET", "https://example.test")
+        ),
         body=None,
     )
 
-@pytest.mark.parametrize("exc_factory", [
-    lambda: requests.Timeout("timeout"),
-    lambda: requests.ConnectionError("conn error"),
-    _make_api_conn_err,
-    _make_api_timeout_err,
-    _make_rate_limit_err,
-    *[lambda s=s: DummyStatusError(s) for s in RETRYABLE_STATUSES],
-])
+
+@pytest.mark.parametrize(
+    "exc_factory",
+    [
+        lambda: requests.Timeout("timeout"),
+        lambda: requests.ConnectionError("conn error"),
+        _make_api_conn_err,
+        _make_api_timeout_err,
+        _make_rate_limit_err,
+        *[lambda s=s: DummyStatusError(s) for s in RETRYABLE_STATUSES],
+    ],
+)
 def test_llm_retry_retries_three_times(exc_factory):
     calls = {"n": 0}
 
