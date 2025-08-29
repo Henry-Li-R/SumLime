@@ -44,6 +44,10 @@ db.init_app(app)
 def healthz():
     return "ok", 200
 
+# Always allow preflight requests
+@app.route("/<path:_>", methods=["OPTIONS"])
+def preflight(_):
+    return ("", 204)
 
 @app.errorhandler(Exception)
 def handle_exception(e):
