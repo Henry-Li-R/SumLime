@@ -13,18 +13,16 @@ from auth import auth_required
 
 app = Flask(__name__)
 
+ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "https://sum-lime.vercel.app",  # production
+    "https://sum-lime-3f6839ak1-henry-lis-projects-6da959dc.vercel.app",  # staging
+    "https://sum-lime-git-staging-fixes-henry-lis-projects-6da959dc.vercel.app",  # alt for above
+]
+
 CORS(
     app,
-    resources={
-        r"/api/*": {
-            "origins": [
-                "http://localhost:5173",
-                "https://sum-lime.vercel.app",  # production
-                "https://sum-lime-3f6839ak1-henry-lis-projects-6da959dc.vercel.app", # staging
-                "https://sum-lime-git-staging-fixes-henry-lis-projects-6da959dc.vercel.app", # alt for above
-            ]
-        },
-    },
+    resources={r"/api/*": {"origins": ALLOWED_ORIGINS}},
     allow_headers=["Authorization", "Content-Type"],
     methods=["GET", "POST", "OPTIONS"],
     max_age=600,
@@ -44,10 +42,14 @@ db.init_app(app)
 def healthz():
     return "ok", 200
 
+
+"""
 # Always allow preflight requests
 @app.route("/<path:_>", methods=["OPTIONS"])
 def preflight(_):
     return ("", 204)
+"""
+
 
 @app.errorhandler(Exception)
 def handle_exception(e):
