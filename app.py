@@ -43,12 +43,11 @@ def healthz():
     return "ok", 200
 
 
-"""
-# Always allow preflight requests
-@app.route("/<path:_>", methods=["OPTIONS"])
-def preflight(_):
-    return ("", 204)
-"""
+# Always allow preflight
+@app.before_request
+def _preflight_shortcircuit():
+    if request.method == "OPTIONS":
+        return ("", 204)
 
 
 @app.errorhandler(Exception)
