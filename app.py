@@ -13,12 +13,6 @@ from auth import auth_required
 
 app = Flask(__name__)
 
-@app.route("/healthz", methods=["GET", "OPTIONS"])
-def healthz():
-    if request.method == "OPTIONS":
-        return ("", 204)
-    return "ok", 200
-
 ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "https://sum-lime.vercel.app",  # production
@@ -28,7 +22,7 @@ ALLOWED_ORIGINS = [
 
 CORS(
     app,
-    resources={r"/api/*": {"origins": ALLOWED_ORIGINS}},
+    resources={r"/*": {"origins": ALLOWED_ORIGINS}},
     allow_headers=["Authorization", "Content-Type"],
     methods=["GET", "POST", "OPTIONS"],
     max_age=600,
@@ -42,6 +36,11 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
+
+
+@app.get("/healthz")
+def healthz():
+    return "ok", 200
 
 
 # Always allow preflight
