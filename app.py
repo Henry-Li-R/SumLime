@@ -4,7 +4,7 @@ from werkzeug.exceptions import HTTPException
 from dotenv import load_dotenv
 
 load_dotenv()
-import os, re
+import os
 
 from core.pipeline import summarize
 from core.providers.models import ChatSession, ChatTurn
@@ -13,9 +13,6 @@ from auth import auth_required
 
 app = Flask(__name__)
 
-# Vercel staging URLs
-VERCEL_REGEX = r"https://sum-lime(-git-[\w-]+)-henry-lis-projects-6da959dc\.vercel\.app"
-
 CORS(
     app,
     resources={
@@ -23,9 +20,9 @@ CORS(
             "origins": [
                 "http://localhost:5173",
                 "https://sum-lime.vercel.app",  # production
-                re.compile(VERCEL_REGEX),
+                "https://sum-lime-3f6839ak1-henry-lis-projects-6da959dc.vercel.app", # staging 
             ]
-        },  # staging
+        },
     },
     allow_headers=["Authorization", "Content-Type"],
     methods=["GET", "POST", "OPTIONS"],
