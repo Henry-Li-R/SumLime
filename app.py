@@ -23,6 +23,35 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
 )
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+
+# Temporary startup probe
+from sqlalchemy.engine.url import make_url
+
+raw = os.environ.get("DATABASE_URL")
+print("DATABASE_URL repr:", repr(raw))   # watch for quotes/newlines
+
+if not raw:
+    raise RuntimeError("Missing DATABASE_URL (Railway Service → Variables)")
+
+url = raw.strip()
+
+# Optional: detect non-printables
+bad = [c for c in url if ord(c) < 32]
+if bad:
+    print("Non-printable chars in DATABASE_URL:", [ord(c) for c in bad])
+
+# Validate with SQLAlchemy parser
+try:
+    make_url(url)
+except Exception as e:
+    print("make_url failed:", e)
+    # Helpful: show where it breaks
+    print("First 120 chars:", url[:120])
+    raise
+
+
+
+
 db.init_app(app)
 
 
