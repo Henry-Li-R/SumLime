@@ -13,6 +13,12 @@ from auth import auth_required
 
 app = Flask(__name__)
 
+@app.route("/healthz", methods=["GET", "OPTIONS"])
+def healthz():
+    if request.method == "OPTIONS":
+        return ("", 204)
+    return "ok", 200
+
 ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "https://sum-lime.vercel.app",  # production
@@ -36,11 +42,6 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
-
-
-@app.get("/healthz")
-def healthz():
-    return "ok", 200
 
 
 # Always allow preflight
