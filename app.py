@@ -13,6 +13,9 @@ from auth import auth_required
 
 app = Flask(__name__)
 
+CORS(app)
+
+'''
 ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "https://sum-lime.vercel.app",  # production
@@ -28,7 +31,7 @@ CORS(
     max_age=600,
     supports_credentials=False,  # set True only if you actually use cookies
 )
-
+'''
 
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
     "DATABASE_URL", "sqlite:///chat.db"
