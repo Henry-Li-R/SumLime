@@ -9,7 +9,6 @@ import "katex/dist/katex.min.css";
 import rehypeMathCopy from "./math/rehypeMathCopy.ts"
 import { MathInline, MathBlock } from "./math/MathWrappers.tsx"
 
-
 type Session = { id: number; title: string; last_used: string };
 type LLMResponse = { provider: string; content: string };
 type ChatTurn = {
@@ -19,7 +18,7 @@ type ChatTurn = {
   responses: LLMResponse[];
 }
 
-const API_BASE = "http://localhost:5050";
+const API_BASE = import.meta.env.BACKEND_URL || "http://localhost:5050";
 
 
 export default function HomeChat() {
