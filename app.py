@@ -13,7 +13,13 @@ from auth import auth_required
 
 app = Flask(__name__)
 
-CORS(app)
+CORS(
+  app,
+  resources={r"/*": {"origins": "*"}},   # all routes
+  allow_headers="*",                      # all headers
+  methods=["GET","POST","OPTIONS","PUT","PATCH","DELETE"],
+  max_age=600
+)
 
 '''
 ALLOWED_ORIGINS = [
@@ -50,6 +56,7 @@ def healthz():
 @app.before_request
 def _preflight_shortcircuit():
     if request.method == "OPTIONS":
+        print("OPTIONS", request.path, "Origin:", request.headers.get("Origin"))
         return ("", 204)
 
 # Force CORS on all responses
