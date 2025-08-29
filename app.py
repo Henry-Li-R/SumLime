@@ -1,5 +1,6 @@
 from flask_cors import CORS
 from flask import Flask, request, jsonify, g, abort
+from werkzeug.exceptions import HTTPException
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -11,7 +12,11 @@ from db import db
 from auth import auth_required
 
 app = Flask(__name__)
-CORS(app, origins=[os.environ.get("FRONTEND_URL", "http://localhost:5173")], methods=["GET", "POST"])
+CORS(
+    app,
+    origins=[os.environ.get("FRONTEND_URL", "http://localhost:5173")],
+    methods=["GET", "POST"],
+)
 
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
     "DATABASE_URL", "sqlite:///chat.db"
@@ -19,6 +24,22 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
+
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # HTTPException already has .code/.name/.description
+    if isinstance(e, HTTPException):
+        status = e.code or 500
+        message = (e.description or "").strip() or e.name or "Error"
+    else:
+        status = 500
+        message = (str(e) or "").strip() or "Internal Server Error"
+
+    payload = {
+        "message": message,  # human-readable, short
+    }
+    return jsonify(payload), status
 
 
 @app.route("/api/summarize", methods=["POST"])
@@ -53,11 +74,15 @@ def summarize_prompts():
 @app.route("/api/sessions", methods=["GET"])
 @auth_required
 def list_sessions():
-    sessions = db.session.execute(
-        db.select(ChatSession)
-        .filter_by(user_id=g.user_id)
-        .order_by(ChatSession.last_used.desc())
-    ).scalars().all()
+    sessions = (
+        db.session.execute(
+            db.select(ChatSession)
+            .filter_by(user_id=g.user_id)
+            .order_by(ChatSession.last_used.desc())
+        )
+        .scalars()
+        .all()
+    )
     return jsonify(
         [
             {"id": s.id, "title": s.title, "last_used": s.last_used.isoformat()}
@@ -78,17 +103,15 @@ def get_session_messages(session_id: int):
         outs = t.outputs or []
 
         summarizer = next(
-            (o for o in outs if o.summarizer_prompt is not None), None # type: ignore
+            (o for o in outs if o.summarizer_prompt is not None), None  # type: ignore
         )  # pyright: ignore
         base = [
-            o for o in outs if o.summarizer_prompt is None # type: ignore
+            o for o in outs if o.summarizer_prompt is None  # type: ignore
         ]  # pyright: ignore
 
         responses = []
         if summarizer:
-            responses.append(
-                {"provider": "summarizer", "content": summarizer.content}
-            )
+            responses.append({"provider": "summarizer", "content": summarizer.content})
         responses.extend({"provider": o.provider, "content": o.content} for o in base)
 
         return {
@@ -98,7 +121,7 @@ def get_session_messages(session_id: int):
             "responses": responses,
         }
 
-    return jsonify([pack_turn(t) for t in turns]) # type: ignore
+    return jsonify([pack_turn(t) for t in turns])  # type: ignore
 
 
 if __name__ == "__main__":

@@ -41,6 +41,23 @@ export default function HomeChat() {
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  /* LLM API error handling */
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  // helper: turn unknown errors / bad responses into short strings
+  function toUserMessage(err: unknown): string {
+    if (!err) return "Something went wrong.";
+    if (typeof err === "string") return err;
+
+    // If someone threw an Error()
+    if (err instanceof Error) return err.message || "Something went wrong.";
+
+    // Expecting backend JSON: { message, code }
+    const anyErr = err as { message?: string; code?: number };
+    const msg = anyErr.message || "Something went wrong.";
+    return msg;
+  }
+
+
   useEffect(() => {
     apiFetch(`${API_BASE}/api/sessions`)
       .then((r) => r.json())
@@ -82,6 +99,7 @@ export default function HomeChat() {
 
     setPrompt("");
     setIsSending(true);
+    setErrorMsg("");
     console.log("Prompt sent successfully");
 
     try {
@@ -98,6 +116,18 @@ export default function HomeChat() {
           llm_anonymous: true,
         }),
       });
+
+      if (!res.ok) {
+        let serverMsg = "Request failed.";
+        try {
+          const maybe = await res.json();
+          serverMsg = toUserMessage(maybe);
+        } catch {
+          // ignore JSON parse errors; keep generic text
+        }
+        setErrorMsg(serverMsg);
+        return; // bail out of the happy-path flow
+      }
 
       const data = await res.json();
       setChatSession(data?.session_id ?? null);
@@ -145,6 +175,7 @@ export default function HomeChat() {
       }
     } catch (err) {
       console.error(err);
+      setErrorMsg(toUserMessage(err));
     } finally {
       setIsSending(false);
     }
@@ -301,6 +332,24 @@ export default function HomeChat() {
             </div>
           ) : (
             chatTurns.length === 0 && <p className="text-gray-500">Enter a prompt or pick a chat to get started.</p>
+          )}
+
+          {/* LLM API Error Message Section */}
+          {errorMsg && (
+            <div className="mb-3">
+              <div className="flex items-start justify-between rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
+                <div className="pr-2">
+                  {errorMsg}
+                </div>
+                <button
+                  onClick={() => setErrorMsg(null)}
+                  className="ml-2 text-red-700 hover:underline"
+                  aria-label="Dismiss error"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
           )}
 
         </div>

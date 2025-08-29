@@ -1,4 +1,7 @@
 from abc import ABC, abstractmethod
+import logging
+
+logger = logging.getLogger(__name__)
 
 # --- Retry utility imports for LLM APIs ---
 from tenacity import (
@@ -6,6 +9,7 @@ from tenacity import (
     stop_after_attempt,
     wait_exponential_jitter,
     retry_if_exception,
+    before_sleep_log
 )
 from openai import APIStatusError, APIConnectionError, RateLimitError, APITimeoutError
 import requests
@@ -56,4 +60,5 @@ def llm_retry(max_attempts: int = 3, initial: float = 0.5, max_wait: float = 2.5
         wait=wait_exponential_jitter(initial=initial, max=max_wait),
         stop=stop_after_attempt(max_attempts),
         reraise=True,
+        before_sleep=before_sleep_log(logger, logging.WARNING),  # log every retry
     )
