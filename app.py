@@ -20,7 +20,8 @@ CORS(
             "origins": [
                 "http://localhost:5173",
                 "https://sum-lime.vercel.app",  # production
-                "https://sum-lime-3f6839ak1-henry-lis-projects-6da959dc.vercel.app", # staging 
+                "https://sum-lime-3f6839ak1-henry-lis-projects-6da959dc.vercel.app", # staging
+                "https://sum-lime-git-staging-fixes-henry-lis-projects-6da959dc.vercel.app" # alt for above
             ]
         },
     },
