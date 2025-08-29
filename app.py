@@ -29,6 +29,10 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db.init_app(app)
 
 
+@app.get("/healthz")
+def healthz():
+    return "ok", 200
+
 @app.errorhandler(Exception)
 def handle_exception(e):
     # HTTPException already has .code/.name/.description
