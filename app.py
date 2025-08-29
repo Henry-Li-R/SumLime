@@ -52,6 +52,20 @@ def _preflight_shortcircuit():
     if request.method == "OPTIONS":
         return ("", 204)
 
+# Force CORS on all responses
+@app.after_request
+def _ensure_cors(resp):
+    # If Flask-CORS didn't set ACAO (e.g., early exception), set the basics.
+    if "Access-Control-Allow-Origin" not in resp.headers:
+        origin = request.headers.get("Origin")
+        resp.headers["Access-Control-Allow-Origin"] = origin or "*"
+        resp.headers["Vary"] = "Origin"
+        resp.headers["Access-Control-Allow-Headers"] = request.headers.get(
+            "Access-Control-Request-Headers", "Authorization, Content-Type"
+        )
+        resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, PATCH, DELETE"
+        resp.headers["Access-Control-Max-Age"] = "600"
+    return resp
 
 @app.errorhandler(Exception)
 def handle_exception(e):
