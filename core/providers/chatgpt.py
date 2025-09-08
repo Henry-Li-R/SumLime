@@ -16,8 +16,13 @@ class ChatGPTProvider(LLMProvider):
             {"role": "system", "content": system_message},
             {"role": "user", "content": prompt},
         ]
-        response = self.client.responses.create(
+        with self.client.responses.stream(
             model="gpt-4o-mini",
             input=messages,
-        )
-        return response.output_text
+        ) as stream:
+            text_parts = []
+            for event in stream:
+                if event.type == "response.output_text.delta":
+                    text_parts.append(event.delta)
+            stream.get_final_response()
+        return "".join(text_parts)

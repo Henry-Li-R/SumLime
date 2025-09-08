@@ -15,12 +15,19 @@ class DeepSeekProvider(LLMProvider):
         self.client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
 
     @llm_retry()
-    def _create_chat_completion(self, *, messages: list[dict]):
-        return self.client.chat.completions.create(
+    def _create_chat_completion(self, *, messages: list[dict]) -> str:
+        """Stream a chat completion via SSE and return the aggregated text."""
+        with self.client.chat.completions.stream(
             model="deepseek-chat",
             messages=messages,  # type: ignore
-            stream=False,
-        )
+        ) as stream:
+            text_parts = []
+            for event in stream:
+                if event.choices and event.choices[0].delta.content:
+                    text_parts.append(event.choices[0].delta.content)
+            # finalize streaming to surface server-side errors if any
+            stream.get_final_response()
+        return "".join(text_parts)
 
     def query(
         self,
@@ -88,13 +95,8 @@ class DeepSeekProvider(LLMProvider):
         # Current user message (caller passes the correct prompt for current mode)
         messages.append({"role": "user", "content": prompt})
 
-        # Call DeepSeek
-        response = self._create_chat_completion(messages=messages)
-        try:
-            text = response.choices[0].message.content or ""
-        except (AttributeError, IndexError, KeyError):
-            text = ""
-        text = text.strip()
+        # Call DeepSeek using SSE streaming
+        text = self._create_chat_completion(messages=messages).strip()
 
         # Sanitize latex
         def sanitize_latex(text: str) -> str:
