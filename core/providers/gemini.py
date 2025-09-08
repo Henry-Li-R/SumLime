@@ -44,7 +44,7 @@ class GeminiProvider(LLMProvider):
         chat_session: int,
         is_summarizing: bool = False,
         system_message: str = "",
-    ) -> str:
+    ):
         """
         Build provider-specific chat history for Gemini:
           - If is_summarizing: use each turn's summarizer_prompt (if present) as the 'user' text,
@@ -115,6 +115,7 @@ class GeminiProvider(LLMProvider):
             chunk_text = getattr(chunk, "text", "") or ""
             if chunk_text:
                 text_parts.append(chunk_text)
+                yield chunk_text
         # Finalize stream to surface errors
         try:
             stream.resolve()
@@ -138,5 +139,3 @@ class GeminiProvider(LLMProvider):
         print(contents)
         print("\n\n")
         """
-
-        return text

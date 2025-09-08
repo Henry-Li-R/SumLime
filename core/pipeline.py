@@ -48,9 +48,13 @@ def summarize(
     db.session.add(new_turn)
     db.session.flush()  # ensure new_turn.id is populated before using it
 
-    results = {}
+    results: dict[str, str] = {}
     for model in models:
-        results[model] = MODEL_PROVIDERS[model].query(prompt, new_turn.id, chat_session)
+        stream = MODEL_PROVIDERS[model].query(prompt, new_turn.id, chat_session)
+        parts: list[str] = []
+        for chunk in stream:
+            parts.append(chunk)
+        results[model] = "".join(parts)
 
     summary_input = "\n\n".join(
         [
@@ -68,9 +72,13 @@ Prompt:\n\n
 LLM responses:\n\n
 {summary_input}
 """
-    summary = MODEL_PROVIDERS[summary_model].query(
+    summary_stream = MODEL_PROVIDERS[summary_model].query(
         summary_prompt, new_turn.id, chat_session, is_summarizing=True
     )
+    summary_parts: list[str] = []
+    for chunk in summary_stream:
+        summary_parts.append(chunk)
+    summary = "".join(summary_parts)
     results["summarizer"] = summary
 
     return {
