@@ -15,7 +15,13 @@ class GeminiProvider(LLMProvider):
         self.client = genai.Client(api_key=api_key)
 
     @llm_retry()
-    def _generate(self, *, contents: list[dict] | str):
+    def _generate(self, *, contents: list[dict] | str, stream: bool = False):
+        """Wrapper around the Gemini client with optional SSE streaming."""
+        if stream:
+            return self.client.models.generate_content_stream(
+                model="gemini-2.0-flash-lite",
+                contents=contents,  # type: ignore
+            )
         return self.client.models.generate_content(
             model="gemini-2.0-flash-lite",
             contents=contents,  # type: ignore
@@ -102,13 +108,19 @@ class GeminiProvider(LLMProvider):
         # Current user message
         contents.append({"role": "user", "parts": [{"text": prompt}]})
 
-        # Call Gemini
-        response = self._generate(contents=contents)
+        # Call Gemini using SSE streaming
+        stream = self._generate(contents=contents, stream=True)
+        text_parts: list[str] = []
+        for chunk in stream:
+            chunk_text = getattr(chunk, "text", "") or ""
+            if chunk_text:
+                text_parts.append(chunk_text)
+        # Finalize stream to surface errors
         try:
-            text = response.text or ""
-        except (AttributeError, KeyError):
-            text = ""
-        text = text.strip()
+            stream.resolve()
+        except AttributeError:
+            pass
+        text = "".join(text_parts).strip()
 
         # Persist output (provider='gemini'; summarizer_prompt only when summarizing)
         llm_output = LLMOutput(
