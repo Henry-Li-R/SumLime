@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import logging
+from typing import Iterator
 
 # --- Retry utility imports for LLM APIs ---
 from tenacity import (
@@ -28,7 +29,13 @@ class LLMProvider(ABC):
         chat_session: int,
         is_summarizing: bool = False,
         system_message="",
-    ) -> str:
+    ) -> Iterator[str]:
+        """Stream chunks of model output.
+
+        Implementations should yield partial strings as they arrive from the
+        upstream model.  The caller is responsible for consuming the generator
+        and concatenating the chunks into the final response.
+        """
         pass
 
 

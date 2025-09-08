@@ -15,19 +15,17 @@ class DeepSeekProvider(LLMProvider):
         self.client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
 
     @llm_retry()
-    def _create_chat_completion(self, *, messages: list[dict]) -> str:
-        """Stream a chat completion via SSE and return the aggregated text."""
+    def _create_chat_completion(self, *, messages: list[dict]):
+        """Stream a chat completion via SSE, yielding text deltas."""
         with self.client.chat.completions.stream(
             model="deepseek-chat",
             messages=messages,  # type: ignore
         ) as stream:
-            text_parts = []
             for event in stream:
                 if event.choices and event.choices[0].delta.content:
-                    text_parts.append(event.choices[0].delta.content)
+                    yield event.choices[0].delta.content
             # finalize streaming to surface server-side errors if any
             stream.get_final_response()
-        return "".join(text_parts)
 
     def query(
         self,
@@ -36,7 +34,7 @@ class DeepSeekProvider(LLMProvider):
         chat_session: int,
         is_summarizing: bool = False,
         system_message="",
-    ) -> str:
+    ):
         """
         Build provider-specific chat history:
           - If is_summarizing: use each turn's summarizer_prompt (if present) as the 'user' text,
@@ -96,7 +94,12 @@ class DeepSeekProvider(LLMProvider):
         messages.append({"role": "user", "content": prompt})
 
         # Call DeepSeek using SSE streaming
-        text = self._create_chat_completion(messages=messages).strip()
+        text_parts: list[str] = []
+        for chunk in self._create_chat_completion(messages=messages):
+            text_parts.append(chunk)
+            yield chunk
+
+        text = "".join(text_parts).strip()
 
         # Sanitize latex
         def sanitize_latex(text: str) -> str:
@@ -124,4 +127,3 @@ class DeepSeekProvider(LLMProvider):
         print(messages)
         print("\n\n")
         """
-        return text

@@ -11,7 +11,14 @@ class ChatGPTProvider(LLMProvider):
 
         self.client = OpenAI(api_key=api_key)
 
-    def query(self, prompt: str, system_message="") -> str:
+    def query(
+        self,
+        prompt: str,
+        chat_turn: int,
+        chat_session: int,
+        is_summarizing: bool = False,
+        system_message="",
+    ):
         messages = [
             {"role": "system", "content": system_message},
             {"role": "user", "content": prompt},
@@ -20,9 +27,8 @@ class ChatGPTProvider(LLMProvider):
             model="gpt-4o-mini",
             input=messages,
         ) as stream:
-            text_parts = []
             for event in stream:
                 if event.type == "response.output_text.delta":
-                    text_parts.append(event.delta)
+                    if event.delta:
+                        yield event.delta
             stream.get_final_response()
-        return "".join(text_parts)
