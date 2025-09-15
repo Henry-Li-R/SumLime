@@ -143,8 +143,8 @@ export default function HomeChat() {
         const parts = buffer.split("\n\n");
         buffer = parts.pop() ?? "";
         for (const part of parts) {
-          if (!part.startsWith("data:")) continue;
-          const payload = JSON.parse(part.slice(5));
+          if (!part.startsWith("data: ")) continue;
+          const payload = JSON.parse(part.slice(len("data: ")));
           if (payload.final) {
             const final = payload.final;
             setChatSession(final.session_id ?? null);

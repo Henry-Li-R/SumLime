@@ -91,8 +91,6 @@ class DeepSeekProvider(LLMProvider):
 
         # Call DeepSeek using SSE streaming
         stream = self._create_chat_completion(messages=messages)
-        print(str(stream))
-        print(type(stream))
         text_parts: list[str] = []
         for event in stream:
             # Incremental token
