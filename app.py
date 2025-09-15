@@ -1,5 +1,5 @@
 from flask_cors import CORS
-from flask import Flask, request, jsonify, g, abort
+from flask import Flask, request, jsonify, g, abort, Response, stream_with_context
 from werkzeug.exceptions import HTTPException
 from dotenv import load_dotenv
 
@@ -7,6 +7,7 @@ load_dotenv()
 import os
 
 from core.pipeline import summarize
+import json
 from core.providers.models import ChatSession, ChatTurn
 from db import db
 from auth import auth_required
@@ -79,15 +80,26 @@ def summarize_prompts():
     if not prompt:
         return jsonify({"error": "Missing 'prompt' in request"}), 400
 
-    result = summarize(
-        prompt,
-        models,
-        chat_session=chat_session,
-        summary_model=summary_model,
-        title_model="gemini",  # avoid changing this default
-        llm_anonymous=llm_anonymous,
-    )
-    return jsonify(result)
+    def event_stream():
+        gen = summarize(
+            prompt,
+            models,
+            chat_session=chat_session,
+            summary_model=summary_model,
+            title_model="gemini",  # avoid changing this default
+            llm_anonymous=llm_anonymous,
+        )
+        while True:
+            try:
+                chunk = next(gen)
+            except StopIteration as e:
+                final = e.value
+                yield f"data: {json.dumps({'final': final})}\n\n"
+                break
+            else:
+                yield f"data: {json.dumps(chunk)}\n\n"
+
+    return Response(stream_with_context(event_stream()), mimetype="text/event-stream")
 
 
 @app.route("/api/sessions", methods=["GET"])
