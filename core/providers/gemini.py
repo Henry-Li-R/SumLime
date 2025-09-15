@@ -31,10 +31,7 @@ class GeminiProvider(LLMProvider):
         response = self._generate(
             contents=f"Given prompt below, generate exactly one descriptive chat title, in a ready-to-use format without quotes, at max 35 chars\n{prompt}",
         )
-        try:
-            text = response.text or "Chat Session"
-        except (AttributeError, KeyError):
-            text = "Chat Session"
+        text = getattr(response, "text", "Chat Session")
         return text.strip()[:40]
 
     def query(
@@ -116,11 +113,7 @@ class GeminiProvider(LLMProvider):
             if chunk_text:
                 text_parts.append(chunk_text)
                 yield chunk_text
-        # Finalize stream to surface errors
-        try:
-            stream.resolve()
-        except AttributeError:
-            pass
+
         text = "".join(text_parts).strip()
 
         # Persist output (provider='gemini'; summarizer_prompt only when summarizing)
