@@ -99,14 +99,17 @@ export default function HomeChat() {
     setPrompt("");
     setIsSending(true);
     setErrorMsg("");
-    console.log("Prompt sent successfully");
+
+    // Create a temporary turn so UI can stream in provider chunks
+    const tempTurnId = Date.now();
+    setChatTurns((prev) => [
+      ...prev,
+      { turn_id: tempTurnId, created_at: new Date().toISOString(), prompt, responses: [] },
+    ]);
 
     try {
       const res = await apiFetch(`${API_BASE}/api/summarize`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           prompt,
           models: ["gemini", "deepseek"],
@@ -116,7 +119,7 @@ export default function HomeChat() {
         }),
       });
 
-      if (!res.ok) {
+      if (!res.ok || !res.body) {
         let serverMsg = "Request failed.";
         try {
           const maybe = await res.json();
@@ -125,52 +128,73 @@ export default function HomeChat() {
           // ignore JSON parse errors; keep generic text
         }
         setErrorMsg(serverMsg);
-        return; // bail out of the happy-path flow
+        return;
       }
 
-      const data = await res.json();
-      setChatSession(data?.session_id ?? null);
-      // Format `/summarize` response into a ChatTurn and append (preserve model order)
-      const selectedModels = ["gemini", "deepseek"]; // [ ]: source from UI state if selectable
-      const results = data?.results ?? {};
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      const accum: Record<string, string> = {};
 
-      const baseResponses = selectedModels
-        .map((p) => {
-          const content = results[p];
-          if (content == null) return null;
-          return { provider: p, content } as LLMResponse;
-        })
-        .filter(Boolean) as LLMResponse[];
-
-      const summaryContent = results.summarizer ?? results.summary ?? null;
-      const responses: LLMResponse[] =
-        summaryContent != null
-          ? [{ provider: "summarizer", content: summaryContent }, ...baseResponses]
-          : baseResponses;
-      const newTurn: ChatTurn = {
-        turn_id: data.turn_id,
-        created_at: data.created_at,
-        prompt: data.prompt,
-        responses,
-      };
-
-      setChatTurns((prev) => [...prev, newTurn]);
-
-      // Initialize selection for the new turn
-      setSelectedProviderByTurn((prev) => ({
-        ...prev,
-        [newTurn.turn_id]: pickDefaultProvider(newTurn.responses),
-      }));
-
-      // Also refresh the sessions list so the left panel is up-to-date
-      try {
-        const sessRes = await apiFetch(`${API_BASE}/api/sessions`);
-        if (sessRes.ok) {
-          const sess = await sessRes.json();
-          setSessions(sess);
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() ?? "";
+        for (const part of parts) {
+          if (!part.startsWith("data:")) continue;
+          const payload = JSON.parse(part.slice(5));
+          if (payload.final) {
+            const final = payload.final;
+            setChatSession(final.session_id ?? null);
+            // Replace temporary turn id with real one and timestamp
+            setChatTurns((prev) =>
+              prev.map((t) =>
+                t.turn_id === tempTurnId
+                  ? { ...t, turn_id: final.turn_id, created_at: final.created_at }
+                  : t
+              )
+            );
+            // Default provider selection for the new turn
+            const finalResponses: LLMResponse[] = Object.entries(accum).map(
+              ([provider, content]) => ({ provider, content })
+            );
+            setSelectedProviderByTurn((prev) => {
+              const { [tempTurnId]: _old, ...rest } = prev;
+              return {
+                ...rest,
+                [final.turn_id]: pickDefaultProvider(finalResponses),
+              };
+            });
+            // Refresh sessions list
+            try {
+              const sessRes = await apiFetch(`${API_BASE}/api/sessions`);
+              if (sessRes.ok) {
+                const sess = await sessRes.json();
+                setSessions(sess);
+              }
+            } catch (err) {
+              console.error(err);
+            }
+          } else {
+            const { provider, chunk } = payload as {
+              provider: string;
+              chunk: string;
+            };
+            accum[provider] = (accum[provider] || "") + chunk;
+            setChatTurns((prev) =>
+              prev.map((t) => {
+                if (t.turn_id !== tempTurnId) return t;
+                const responses = [...t.responses];
+                const existing = responses.find((r) => r.provider === provider);
+                if (existing) existing.content += chunk;
+                else responses.push({ provider, content: chunk });
+                return { ...t, responses };
+              })
+            );
+          }
         }
-      } catch (err) {
-        console.error(err);
       }
     } catch (err) {
       console.error(err);
