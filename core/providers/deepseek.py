@@ -16,16 +16,11 @@ class DeepSeekProvider(LLMProvider):
 
     @llm_retry()
     def _create_chat_completion(self, *, messages: list[dict]):
-        """Stream a chat completion via SSE, yielding text deltas."""
-        with self.client.chat.completions.stream(
+        """Return a streaming chat completion handle."""
+        return self.client.chat.completions.stream(
             model="deepseek-chat",
             messages=messages,  # type: ignore
-        ) as stream:
-            for event in stream:
-                if event.choices and event.choices[0].delta.content:
-                    yield event.choices[0].delta.content
-            # finalize streaming to surface server-side errors if any
-            stream.get_final_response()
+        )
 
     def query(
         self,
@@ -94,10 +89,15 @@ class DeepSeekProvider(LLMProvider):
         messages.append({"role": "user", "content": prompt})
 
         # Call DeepSeek using SSE streaming
+        stream = self._create_chat_completion(messages=messages)
         text_parts: list[str] = []
-        for chunk in self._create_chat_completion(messages=messages):
-            text_parts.append(chunk)
-            yield chunk
+        for event in stream:
+            # Incremental token
+            if getattr(event, "type", None) == "content.delta":
+                delta = getattr(event, "delta", "")
+                if delta:
+                    text_parts.append(delta)
+                    yield delta
 
         text = "".join(text_parts).strip()
 
