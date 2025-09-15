@@ -108,11 +108,18 @@ class GeminiProvider(LLMProvider):
         # Call Gemini using SSE streaming
         stream = self._generate(contents=contents, stream=True)
         text_parts: list[str] = []
+        prev_text = ""
         for chunk in stream:
+            # Gemini returns the cumulative text so far for each chunk.
+            # Emit only the new portion to avoid stammering / repeated output.
             chunk_text = getattr(chunk, "text", "") or ""
-            if chunk_text:
-                text_parts.append(chunk_text)
-                yield chunk_text
+            if not chunk_text:
+                continue
+            new_text = chunk_text[len(prev_text) :]
+            prev_text = chunk_text
+            if new_text:
+                text_parts.append(new_text)
+                yield new_text
 
         text = "".join(text_parts).strip()
 
