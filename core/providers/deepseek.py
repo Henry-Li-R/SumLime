@@ -17,9 +17,10 @@ class DeepSeekProvider(LLMProvider):
     @llm_retry()
     def _create_chat_completion(self, *, messages: list[dict]):
         """Return a streaming chat completion handle."""
-        return self.client.chat.completions.stream(
+        return self.client.chat.completions.create(
             model="deepseek-chat",
             messages=messages,  # type: ignore
+            stream=True,
         )
 
     def query(
@@ -90,15 +91,16 @@ class DeepSeekProvider(LLMProvider):
 
         # Call DeepSeek using SSE streaming
         stream = self._create_chat_completion(messages=messages)
+        print(str(stream))
+        print(type(stream))
         text_parts: list[str] = []
         for event in stream:
             # Incremental token
-            if getattr(event, "type", None) == "content.delta":
-                delta = getattr(event, "delta", "")
-                if delta:
-                    text_parts.append(delta)
-                    yield delta
-
+            if event.choices and event.choices[0].delta.content:
+                delta = event.choices[0].delta.content
+                text_parts.append(delta)
+                yield delta
+        
         text = "".join(text_parts).strip()
 
         # Sanitize latex
