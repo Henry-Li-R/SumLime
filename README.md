@@ -49,6 +49,7 @@ flask --app app --debug run
 
 
 ## Next steps
+- [ ] Prevent react strict-mode from causing stammering SSE output
 - [ ] deepseek dynamic latex sanitizing
 - [ ] allow user's scrolling to stop auto scrolling
 
