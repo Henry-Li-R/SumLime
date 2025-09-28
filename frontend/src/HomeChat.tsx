@@ -144,7 +144,7 @@ export default function HomeChat() {
         buffer = parts.pop() ?? "";
         for (const part of parts) {
           if (!part.startsWith("data: ")) continue;
-          const payload = JSON.parse(part.slice(len("data: ")));
+          const payload = JSON.parse(part.slice("data: ".length));
           if (payload.final) {
             const final = payload.final;
             setChatSession(final.session_id ?? null);
@@ -182,6 +182,7 @@ export default function HomeChat() {
               provider: string;
               chunk: string;
             };
+            
             accum[provider] = (accum[provider] || "") + chunk;
             setChatTurns((prev) =>
               prev.map((t) => {
@@ -189,7 +190,9 @@ export default function HomeChat() {
                 const responses = [...t.responses];
                 const existing = responses.find((r) => r.provider === provider);
                 if (existing) existing.content += chunk;
-                else responses.push({ provider, content: chunk });
+                else { 
+                  responses.push({ provider, content: chunk });
+                }
                 return { ...t, responses };
               })
             );
