@@ -64,6 +64,7 @@ export default function HomeChat() {
       .catch(() => { });
   }, []);
 
+  
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [chatTurns]);

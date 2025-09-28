@@ -48,6 +48,9 @@ flask --app app --debug run
 ## 🧪 Example API Usage
 
 
+## Next steps
+- [ ] deepseek dynamic latex sanitizing
+- [ ] allow user's scrolling to stop auto scrolling
 
 ## 🛣 Roadmap
 - [+] Cross-LLM summary
