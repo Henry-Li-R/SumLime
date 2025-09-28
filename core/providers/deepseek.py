@@ -89,13 +89,6 @@ class DeepSeekProvider(LLMProvider):
         # Current user message (caller passes the correct prompt for current mode)
         messages.append({"role": "user", "content": prompt})
 
-        def sanitize_latex(text: str) -> str:
-            text = text.replace("\\(", "$")
-            text = text.replace("\\)", "$")
-            text = text.replace("\\[", "$$")
-            text = text.replace("\\]", "$$")
-            return text
-
         # Call DeepSeek using SSE streaming
         stream = self._create_chat_completion(messages=messages)
         text_parts: list[str] = []
@@ -103,11 +96,20 @@ class DeepSeekProvider(LLMProvider):
             # Incremental token
             if event.choices and event.choices[0].delta.content:
                 delta = event.choices[0].delta.content
-                delta = sanitize_latex(delta)
                 text_parts.append(delta)
                 yield delta
         
         text = "".join(text_parts).strip()
+
+        # Sanitize latex
+        def sanitize_latex(text: str) -> str:
+            text = text.replace("\\(", "$")
+            text = text.replace("\\)", "$")
+            text = text.replace("\\[", "$$")
+            text = text.replace("\\]", "$$")
+            return text
+
+        text = sanitize_latex(text)
 
         # Commit new LLMOutput to db
         llm_output = LLMOutput(
