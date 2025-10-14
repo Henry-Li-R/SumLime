@@ -51,9 +51,9 @@ flask --app app --debug run
 ## 🛣 Roadmap
 - [+] Cross-LLM summary
 - [+] LaTeX copy-paste
+- [+] SSE streaming (messages + claim updates)
 - [ ] Rate limit or token usage tracking
 - [ ] Settings for choosing models (ordered list), summarizer on/off; handling different settings across sessions or settings changes inside session, db persistence potentially required
-- [ ] SSE streaming (messages + claim updates)
 - [ ] Option to retry or pause generating response
 - [ ] Improve scalability with long or many chat sessions (e.g. delete unused chat sessions)
 - [ ] Settings panel (e.g. delete all chat sessions, system instructions)
