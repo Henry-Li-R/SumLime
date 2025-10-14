@@ -64,11 +64,6 @@ export default function HomeChat() {
       .catch(() => { });
   }, []);
 
-  
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [chatTurns]);
-
   const loadSession = async (id: number) => {
     setChatSession(id);
     try {

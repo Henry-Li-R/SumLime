@@ -48,11 +48,6 @@ flask --app app --debug run
 ## 🧪 Example API Usage
 
 
-## Next steps
-- [ ] Prevent react strict-mode from causing stammering SSE output
-- [ ] deepseek dynamic latex sanitizing
-- [ ] allow user's scrolling to stop auto scrolling
-
 ## 🛣 Roadmap
 - [+] Cross-LLM summary
 - [+] LaTeX copy-paste
