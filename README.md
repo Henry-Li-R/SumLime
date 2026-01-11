@@ -21,8 +21,15 @@ A simple web platform to interact with and compare responses from multiple large
 | Frontend     | React + Tailwind              |
 | Backend      | Flask API                     |
 | Models       | OpenAI, Anthropic, DeepSeek, Gemini |
-| Storage/Auth | Supabase (planned)            |
+| Storage/Auth | Supabase            |
 | Deployment   | Render/Vercel                 |
+
+## 📦 Currently Available Models
+
+Enabled in `core/pipeline.py`:
+
+- DeepSeek (`deepseek-chat`)
+- Gemini (`gemini-2.0-flash-lite`) — also used as the default summarizer and title model
 
 ## 🚀 Setup (Backend Only)
 
@@ -37,6 +44,9 @@ OPENAI_API_KEY=...
 ANTHROPIC_API_KEY=...
 DEEPSEEK_API_KEY=...
 GEMINI_API_KEY=...
+SUPABASE_URL=...
+SUPABASE_ANON_KEY=...
+DATABASE_URL=sqlite:///chat.db
 ```
 
 Start the Flask server:
@@ -47,6 +57,21 @@ flask --app app --debug run
 
 ## 🧪 Example API Usage
 
+All `/api/*` endpoints require a Supabase JWT in the `Authorization` header.
+
+```bash
+curl -N \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <SUPABASE_ACCESS_TOKEN>" \
+  -X POST http://localhost:5050/api/summarize \
+  -d '{
+    "prompt": "Compare the strengths of Rust vs Go.",
+    "models": ["gemini", "deepseek"],
+    "summary_model": "gemini",
+    "llm_anonymous": true
+  }'
+```
+
 
 ## 🛣 Roadmap
 - [+] Cross-LLM summary
@@ -54,7 +79,8 @@ flask --app app --debug run
 - [+] SSE streaming (messages + claim updates)
 - [ ] Rate limit or token usage tracking
 - [ ] Settings for choosing models (ordered list), summarizer on/off; handling different settings across sessions or settings changes inside session, db persistence potentially required
-- [ ] Option to retry or pause generating response
+- [+] Retries upon transient API errors
+- [ ] Option to pause generating response
 - [ ] Improve scalability with long or many chat sessions (e.g. delete unused chat sessions)
 - [ ] Settings panel (e.g. delete all chat sessions, system instructions)
 
