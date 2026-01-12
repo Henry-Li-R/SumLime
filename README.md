@@ -55,6 +55,10 @@ Start the Flask server:
 flask --app app --debug run
 ```
 
+## 🧩 Dev Notes
+
+- Disable React `StrictMode` in `frontend/src/main.tsx` to avoid duplicate LLM requests during development.
+
 ## 🧪 Example API Usage
 
 All `/api/*` endpoints require a Supabase JWT in the `Authorization` header.
